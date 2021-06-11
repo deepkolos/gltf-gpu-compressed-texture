@@ -2,27 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import CLI from './cli';
 import process from 'process';
-import { GLTF, ZSTDI } from './types';
-import * as Jimp from 'jimp';
-import * as crypto from 'crypto';
+import { GLTF } from './types';
 import * as gltfPipe from 'gltf-pipeline';
 import BASIS from './libs/basis_encoder.js';
-import {
-  decodeBasis,
-  decodeBasisCli,
-  encodeBasis,
-  encodeBasisCli,
-  removeTmpFiles,
-} from './basis';
-import {
-  exec,
-  makeSureDir,
-  readJsonSync,
-  walkDir,
-  writeJsonSync,
-} from './utils';
-import { ZstdCodec } from 'zstd-codec';
-
+import { decodeBasisCli, encodeBasisCli, Pkg, removeTmpFiles } from './basis';
+import { makeSureDir, readJsonSync, walkDir, writeJsonSync } from './utils';
 const cli = new CLI();
 
 interface Args {
@@ -36,15 +20,6 @@ type GLTFPipeResult = {
   gltf: GLTF;
   separateResources: { [key: string]: Buffer };
 };
-
-function updateGLTFRes(gltf: any, resUri: string, newResUri: string) {
-  [...gltf.images, ...gltf.buffers].some(i => {
-    if (i.uri === resUri) {
-      i.uri = newResUri;
-      return true;
-    }
-  });
-}
 
 function updateGLTFTextures(
   gltf: GLTF,
@@ -64,7 +39,7 @@ function updateGLTFTextures(
 function injectGLTFExtension(
   result: GLTFPipeResult,
   resName: string,
-  pkg: ReturnType<typeof decodeBasis>,
+  pkg: Pkg,
   compress: number,
 ) {
   const extensionDef = {};
@@ -81,7 +56,7 @@ function injectGLTFExtension(
     });
     extensionDef[type] = len - 1;
     result.separateResources[fileName] = buffer;
-    console.log('update separateResources', fileName);
+    // console.log('update separateResources', fileName);
   });
 
   // 更新texture extension
@@ -112,7 +87,7 @@ function getTextureInfo(resName: string, result: GLTFPipeResult) {
     i => i.source === imgIndex,
   );
   const normal = result.gltf.materials.some(
-    material => material.normalTexture.index === textureIndex,
+    material => material.normalTexture?.index === textureIndex,
   );
   const sRGB = result.gltf.materials.some(material =>
     [
@@ -130,25 +105,18 @@ function getTextureInfo(resName: string, result: GLTFPipeResult) {
 const main = async (args: Args) => {
   try {
     const t = Date.now();
-    // prettier-ignore
-    const { dir, outdir = './gltf'} = args;
+    const { dir, outdir = './gltf' } = args;
     const compress = (args.compress ?? 1) | 0;
     const mipmap = (args.mipmap ?? 'true') !== 'false';
-    console.log(dir, outdir, compress, mipmap);
+    // console.log(dir, outdir, compress, mipmap);
 
     makeSureDir(outdir);
 
     const basis = await BASIS();
-    // const zstd = await new Promise<ZSTDI>(resolve => ZstdCodec.run(resolve));
-
-    // const zstdSimple = new zstd.Simple();
-
     basis.initializeBasis();
 
-    // 先解开为gltf
-    // 然后在拼接成gltf/glb
     await walkDir(dir, async (file, isDir) => {
-      if (file.indexOf('BoomBox') === -1) return;
+      // if (file.indexOf('BoomBox') === -1) return;
 
       const ext = path.extname(file);
       const isGLTF = !!ext.match(/\.gltf$/i);
@@ -168,62 +136,15 @@ const main = async (args: Args) => {
           });
         }
 
-        // TODO: 多线程 done（promise all + child_process的zstd encoder和basisu encoder）
-        // const entries = Object.entries(
-        //   result.separateResources as { [k: string]: Buffer },
-        // );
-        // for (let [resName, buffer] of entries) {
-        //   if (resName.match(/\.(jpg|png|bmp)$/i)) {
-        //     let pngBuffer = buffer;
-        //     console.log('processing', resName);
-
-        //     // TODO: wasm的encode只支持png，速度慢，此法是一种fallback，优先使用命令行的方式，速度快，有SIMD加速
-        //     if (resName.match(/\.(jpg|bmp)$/i)) {
-        //       const t = Date.now();
-        //       const jimp = await Jimp.create(buffer);
-        //       pngBuffer = await jimp.getBufferAsync('image/png');
-        //       console.log('to png cost', Date.now() - t);
-        //     }
-
-        //     const basisFileData = encodeBasis(pngBuffer, basis, mipmap);
-        //     const pkg = decodeBasis(basisFileData, basis, zstdSimple, compress);
-        //     // console.log(pkg);
-
-        //     injectGLTFExtension(result, resName, pkg, compress);
-        //   }
-        // }
-
-        // 使用cli来encode basis zstd等，比to png的wasm encode basis快很多
-        // const entries = Object.entries(
-        //   result.separateResources as { [k: string]: Buffer },
-        // );
-        // for (let [resName, buffer] of entries) {
-        //   if (resName.match(/\.(jpg|png|bmp)$/i)) {
-        //     console.log('processing', resName);
-        //     const { normal, sRGB, ext } = getTextureInfo(resName, result);
-        //     const basisFileData = await encodeBasisCli(
-        //       buffer,
-        //       ext,
-        //       mipmap,
-        //       normal,
-        //       sRGB,
-        //     );
-        //     const pkg = await decodeBasisCli(basisFileData, basis, compress);
-        //     // console.log(pkg);
-
-        //     injectGLTFExtension(result, resName, pkg, compress);
-        //   }
-        // }
-
-        // promise.all 大概减少4s时间
+        // promise all + child_process的zstd encoder和basisu encoder
         const entries = Object.entries(
           result.separateResources as { [k: string]: Buffer },
         );
         await Promise.all(
           entries.map(async ([resName, buffer]) => {
             if (resName.match(/\.(jpg|png|bmp)$/i)) {
-              console.log('processing', resName);
               const { normal, sRGB, ext } = getTextureInfo(resName, result);
+              console.log('processing', resName, normal, sRGB);
               const basisFileData = await encodeBasisCli(
                 buffer,
                 ext,
@@ -232,28 +153,25 @@ const main = async (args: Args) => {
                 sRGB,
               );
               const pkg = await decodeBasisCli(basisFileData, basis, compress);
-              // console.log(pkg);
 
               injectGLTFExtension(result, resName, pkg, compress);
             }
           }),
         );
 
-        // console.log(result.separateResources);
         writeGLTF(result, outdir, fileName);
       }
     });
 
-    removeTmpFiles();
+    console.log('\n', `cost: ${Date.now() - t}ms`, '\n');
 
-    console.log(`
-cost: ${Date.now() - t}ms
-`);
+    removeTmpFiles();
   } catch (error) {
     console.log(error);
   }
 };
 
+// prettier-ignore
 cli
   .action('-h --help', '显示帮助', '', () => cli.help())
   .action<Args>(
@@ -262,7 +180,10 @@ cli
     '',
     main,
   )
-
-  .action("gltf-tc -i '../examples/glb' '../examples/gltf'", '', 'Examples')
+  
+  .action("gltf-tc -i '../examples/glb' '../examples/zstd'", '', 'Examples')
+  .action("gltf-tc -i '../examples/glb' '../examples/no-zstd' 0", '', 'Examples')
+  .action("gltf-tc -i '../examples/glb' '../examples/no-mipmap 1 false'", '', 'Examples')
+  .action("gltf-tc -i '../examples/glb' '../examples/no-zstd-no-mipmap 0 false'", '', 'Examples')
 
   .run(process.argv.slice(2));

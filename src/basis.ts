@@ -1,6 +1,5 @@
 import { IBASIS } from './libs/basis_encoder.js';
-import { ZSTDSimple } from './types';
-import { exec, makeSureDir } from './utils';
+import { exec } from './utils';
 import * as fs from 'fs';
 
 // ASTC format, from:
@@ -62,162 +61,161 @@ DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC1] = COMPRESSED_RGB_S3TC_DXT1_EXT;
 DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC3] = COMPRESSED_RGBA_S3TC_DXT5_EXT;
 DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC7] = COMPRESSED_RGBA_BPTC_UNORM;
 
-export function encodeBasis(
-  buffer: ArrayBuffer,
-  BASIS: IBASIS,
-  mipmap: boolean,
-) {
-  const basisEncoder = new BASIS.BasisEncoder();
-  // prettier-ignore
-  basisEncoder.setSliceSourceImage(0, new Uint8Array(buffer), 0, 0, true);
-  basisEncoder.setDebug(false);
-  basisEncoder.setComputeStats(false);
-  basisEncoder.setPerceptual(true);
-  basisEncoder.setMipSRGB(true);
-  basisEncoder.setQualityLevel(10);
-  basisEncoder.setUASTC(true);
-  basisEncoder.setMipGen(mipmap);
+// export function encodeBasis(
+//   buffer: ArrayBuffer,
+//   BASIS: IBASIS,
+//   mipmap: boolean,
+// ) {
+//   const basisEncoder = new BASIS.BasisEncoder();
+//   // prettier-ignore
+//   basisEncoder.setSliceSourceImage(0, new Uint8Array(buffer), 0, 0, true);
+//   basisEncoder.setDebug(false);
+//   basisEncoder.setComputeStats(false);
+//   basisEncoder.setPerceptual(true);
+//   basisEncoder.setMipSRGB(true);
+//   basisEncoder.setQualityLevel(10);
+//   basisEncoder.setUASTC(true);
+//   basisEncoder.setMipGen(mipmap);
 
-  const basisFileData = new Uint8Array(1024 * 1024 * 10);
-  const startTime = Date.now();
-  const numOutputBytes = basisEncoder.encode(basisFileData);
-  const elapsed = Date.now() - startTime;
-  console.log('encode cost:', elapsed);
+//   const basisFileData = new Uint8Array(1024 * 1024 * 10);
+//   const startTime = Date.now();
+//   const numOutputBytes = basisEncoder.encode(basisFileData);
+//   const elapsed = Date.now() - startTime;
+//   console.log('encode cost:', elapsed);
 
-  // prettier-ignore
-  const actualBasisFileData = new Uint8Array(basisFileData.buffer, 0, numOutputBytes);
-  basisEncoder.delete();
-  return actualBasisFileData;
-}
+//   // prettier-ignore
+//   const actualBasisFileData = new Uint8Array(basisFileData.buffer, 0, numOutputBytes);
+//   basisEncoder.delete();
+//   return actualBasisFileData;
+// }
 
-export function decodeBasis(
-  buffer: ArrayBuffer,
-  BASIS: IBASIS,
-  ZSTD: ZSTDSimple,
-  compress: number,
-) {
-  const startTime = Date.now();
+// export function decodeBasis(
+//   buffer: ArrayBuffer,
+//   BASIS: IBASIS,
+//   ZSTD: ZSTDSimple,
+//   compress: number,
+// ) {
+//   const startTime = Date.now();
 
-  let basisFile = new BASIS.BasisFile(new Uint8Array(buffer));
+//   let basisFile = new BASIS.BasisFile(new Uint8Array(buffer));
 
-  const width = basisFile.getImageWidth(0, 0);
-  const height = basisFile.getImageHeight(0, 0);
-  const images = basisFile.getNumImages();
-  const levels = basisFile.getNumLevels(0);
-  const hasAlpha = basisFile.getHasAlpha();
+//   const width = basisFile.getImageWidth(0, 0);
+//   const height = basisFile.getImageHeight(0, 0);
+//   const images = basisFile.getNumImages();
+//   const levels = basisFile.getNumLevels(0);
+//   const hasAlpha = basisFile.getHasAlpha();
 
-  if (!width || !height || !images || !levels) {
-    console.warn('Invalid .basis file');
-    basisFile.close();
-    basisFile.delete();
-    return;
-  }
-  const types = {
-    astc: BASIS_FORMAT.cTFASTC_4x4,
-    bc7: BASIS_FORMAT.cTFBC7,
-    dxt: hasAlpha ? BASIS_FORMAT.cTFBC3 : BASIS_FORMAT.cTFBC1,
-    pvrtc: hasAlpha
-      ? BASIS_FORMAT.cTFPVRTC1_4_RGBA
-      : BASIS_FORMAT.cTFPVRTC1_4_RGB,
-    etc1: BASIS_FORMAT.cTFETC1,
-  };
-  const alignedWidth = (width + 3) & ~3;
-  const alignedHeight = (height + 3) & ~3;
+//   if (!width || !height || !images || !levels) {
+//     console.warn('Invalid .basis file');
+//     basisFile.close();
+//     basisFile.delete();
+//     return;
+//   }
+//   const types = {
+//     astc: BASIS_FORMAT.cTFASTC_4x4,
+//     bc7: BASIS_FORMAT.cTFBC7,
+//     dxt: hasAlpha ? BASIS_FORMAT.cTFBC3 : BASIS_FORMAT.cTFBC1,
+//     pvrtc: hasAlpha
+//       ? BASIS_FORMAT.cTFPVRTC1_4_RGBA
+//       : BASIS_FORMAT.cTFPVRTC1_4_RGB,
+//     etc1: BASIS_FORMAT.cTFETC1,
+//   };
+//   const alignedWidth = (width + 3) & ~3;
+//   const alignedHeight = (height + 3) & ~3;
 
-  interface Output {
-    hasAlpha: number;
-    width: number;
-    height: number;
-    textures: Partial<Record<keyof typeof types, Uint8Array>>;
-  }
+//   interface Output {
+//     hasAlpha: number;
+//     width: number;
+//     height: number;
+//     textures: Partial<Record<keyof typeof types, Uint8Array>>;
+//   }
 
-  const output: Output = {
-    hasAlpha,
-    width: alignedWidth,
-    height: alignedHeight,
-    textures: {},
-  };
+//   const output: Output = {
+//     hasAlpha,
+//     width: alignedWidth,
+//     height: alignedHeight,
+//     textures: {},
+//   };
 
-  Object.keys(types).forEach(type => {
-    const format = types[type];
+//   Object.keys(types).forEach(type => {
+//     const format = types[type];
 
-    if (!basisFile.startTranscoding()) {
-      console.warn('startTranscoding failed');
-      basisFile.close();
-      basisFile.delete();
-      return;
-    }
+//     if (!basisFile.startTranscoding()) {
+//       console.warn('startTranscoding failed');
+//       basisFile.close();
+//       basisFile.delete();
+//       return;
+//     }
 
-    const mipmaps = [];
-    let mipmapsByteLen = 0;
-    for (let mip = 0; mip < levels; mip++) {
-      const dst = new Uint8Array(
-        basisFile.getImageTranscodedSizeInBytes(0, mip, format),
-      );
-      const status = basisFile.transcodeImage(dst, 0, mip, format, 0, hasAlpha);
+//     const mipmaps = [];
+//     let mipmapsByteLen = 0;
+//     for (let mip = 0; mip < levels; mip++) {
+//       const dst = new Uint8Array(
+//         basisFile.getImageTranscodedSizeInBytes(0, mip, format),
+//       );
+//       const status = basisFile.transcodeImage(dst, 0, mip, format, 0, hasAlpha);
 
-      if (!status) {
-        console.warn('transcodeImage failed', type);
-      } else {
-        mipmaps.push(dst);
-        mipmapsByteLen += dst.byteLength;
-      }
-    }
+//       if (!status) {
+//         console.warn('transcodeImage failed', type);
+//       } else {
+//         mipmaps.push(dst);
+//         mipmapsByteLen += dst.byteLength;
+//       }
+//     }
 
-    let data = new Uint8Array(mipmapsByteLen);
-    const header = Uint32Array.from([
-      alignedWidth,
-      alignedHeight,
-      levels,
-      mipmapsByteLen,
-    ]);
-    const offsets = new Uint32Array(levels);
-    mipmaps.reduce((offset, mipmap, i) => {
-      data.set(mipmap, offset);
-      offsets[i] =
-        header.byteLength + offsets.byteLength + offset + mipmap.byteLength;
-      return offset + mipmap.byteLength;
-    }, 0);
+//     let data = new Uint8Array(mipmapsByteLen);
+//     const header = Uint32Array.from([
+//       alignedWidth,
+//       alignedHeight,
+//       levels,
+//       mipmapsByteLen,
+//     ]);
+//     const offsets = new Uint32Array(levels);
+//     mipmaps.reduce((offset, mipmap, i) => {
+//       data.set(mipmap, offset);
+//       offsets[i] =
+//         header.byteLength + offsets.byteLength + offset + mipmap.byteLength;
+//       return offset + mipmap.byteLength;
+//     }, 0);
 
-    // zstd压缩
-    if (compress === 1) {
-      const t = Date.now();
-      data = ZSTD.compress(data, 1);
-      console.log('zstd cost:', Date.now() - t);
-    }
+//     // zstd压缩
+//     if (compress === 1) {
+//       // const t = Date.now();
+//       data = ZSTD.compress(data, 1); // 有内存限制且无SIMD
+//       // console.log('zstd cost:', Date.now() - t);
+//     }
 
-    const dst = new Uint8Array(
-      header.byteLength + offsets.byteLength + data.byteLength,
-    );
-    const dstHeader = new Uint32Array(dst.buffer, 0, header.length);
-    const dstOffsets = new Uint32Array(
-      dst.buffer,
-      header.byteLength,
-      offsets.length,
-    );
-    dstHeader.set(header, 0);
-    dstOffsets.set(offsets, 0);
-    dst.set(data, header.byteLength + offsets.byteLength);
+//     const dst = new Uint8Array(
+//       header.byteLength + offsets.byteLength + data.byteLength,
+//     );
+//     const dstHeader = new Uint32Array(dst.buffer, 0, header.length);
+//     const dstOffsets = new Uint32Array(
+//       dst.buffer,
+//       header.byteLength,
+//       offsets.length,
+//     );
+//     dstHeader.set(header, 0);
+//     dstOffsets.set(offsets, 0);
+//     dst.set(data, header.byteLength + offsets.byteLength);
 
-    output.textures[type] = dst;
-  });
+//     output.textures[type] = dst;
+//   });
 
-  const elapsed = Date.now() - startTime;
-  basisFile.close();
-  basisFile.delete();
-  console.log('deocde cost:', elapsed);
+//   basisFile.close();
+//   basisFile.delete();
+//   console.log('deocde cost:', Date.now() - startTime);
 
-  return output;
-}
+//   return output;
+// }
 
 const tmpFileBaseName = './gltf-tc.tmp';
-let tmpFileId = 0;
 const tmpFiles = [];
+let tmpFileId = 0;
 
 function tmpFileName(ext = '') {
-  tmpFileId++;
   const fileName = `${tmpFileBaseName}${tmpFileId}${ext}`;
   tmpFiles.push(fileName);
+  tmpFileId++;
   return fileName;
 }
 
@@ -232,18 +230,35 @@ export async function encodeBasisCli(
   normal: boolean,
   sRGB: boolean,
 ): Promise<Uint8Array> {
-  const tmpFile = tmpFileName(ext);
-  fs.writeFileSync(tmpFile, new Uint8Array(buffer));
-  let cmd = `basisu ${tmpFile}`;
+  const tmpFileImage = tmpFileName(ext);
+  const tmpFileBasis = tmpFileName('.basis');
+
+  fs.writeFileSync(tmpFileImage, new Uint8Array(buffer));
+  let cmd = `basisu ${tmpFileImage}`;
   cmd += mipmap ? ' -mipmap' : '';
   cmd += normal ? ' -normal_map' : '';
   cmd += !sRGB ? ' -linear' : '';
 
-  // await exec(`${cmd} -output_file ${tmpFile}`);
-  await exec(`${cmd} -uastc -output_file ${tmpFile}`);
-  // await exec(`${cmd} -uastc -uastc_level 2 -uastc_rdo_d 1024 -output_file ${tmpFile}`);
-  const basisBuffer = fs.readFileSync(tmpFile);
+  // await exec(`${cmd} -output_file ${tmpFileBasis}`);
+  await exec(`${cmd} -uastc -output_file ${tmpFileBasis}`);
+  // await exec(`${cmd} -uastc -uastc_level 2 -uastc_rdo_d 1024 -output_file ${tmpFileBasis}`);
+  const basisBuffer = fs.readFileSync(tmpFileBasis);
   return new Uint8Array(basisBuffer);
+}
+
+const types = {
+  astc: 0,
+  bc7: 0,
+  dxt: 0,
+  pvrtc: 0,
+  etc1: 0,
+};
+
+export interface Pkg {
+  hasAlpha: number;
+  width: number;
+  height: number;
+  textures: Partial<Record<keyof typeof types, Uint8Array>>; // 改为正确的类型
 }
 
 export async function decodeBasisCli(
@@ -253,7 +268,7 @@ export async function decodeBasisCli(
 ) {
   const startTime = Date.now();
 
-  let basisFile = new BASIS.BasisFile(new Uint8Array(buffer));
+  const basisFile = new BASIS.BasisFile(new Uint8Array(buffer));
 
   const width = basisFile.getImageWidth(0, 0);
   const height = basisFile.getImageHeight(0, 0);
@@ -279,14 +294,7 @@ export async function decodeBasisCli(
   const alignedWidth = (width + 3) & ~3;
   const alignedHeight = (height + 3) & ~3;
 
-  interface Output {
-    hasAlpha: number;
-    width: number;
-    height: number;
-    textures: Partial<Record<keyof typeof types, Uint8Array>>;
-  }
-
-  const output: Output = {
+  const output: Pkg = {
     hasAlpha,
     width: alignedWidth,
     height: alignedHeight,
@@ -339,7 +347,7 @@ export async function decodeBasisCli(
 
     // zstd压缩
     if (compress === 1) {
-      const t = Date.now();
+      // const t = Date.now();
       // data = ZSTD.compress(data, 1);
       const tmpFile = tmpFileName();
       const tmpOutput = tmpFileName('.zst');
@@ -347,7 +355,7 @@ export async function decodeBasisCli(
       await exec(`zstd -1 ${tmpFile} -f -q -o ${tmpOutput}`);
       const zstdBuffer = fs.readFileSync(tmpOutput);
       data = new Uint8Array(zstdBuffer);
-      console.log('zstd cost:', Date.now() - t);
+      // console.log('zstd cost:', Date.now() - t);
     }
 
     const dst = new Uint8Array(

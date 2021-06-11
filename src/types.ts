@@ -54,14 +54,3 @@ export interface GLTF {
   buffers: Array<BufferDef>;
   materials: Array<MaterialDef>;
 }
-
-export interface ZSTDSimple {
-  compress: (input: Uint8Array, compressionLevel: number) => Uint8Array;
-  decompress: (input: Uint8Array) => Uint8Array;
-}
-
-export interface ZSTDI {
-  Simple: {
-    new (): ZSTDSimple;
-  };
-}
