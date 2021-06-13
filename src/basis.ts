@@ -1,5 +1,5 @@
 import { IBASIS } from './libs/basis_encoder.js';
-import { exec } from './utils';
+import { exec, Log } from './utils';
 import * as fs from 'fs';
 
 // ASTC format, from:
@@ -61,159 +61,13 @@ DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC1] = COMPRESSED_RGB_S3TC_DXT1_EXT;
 DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC3] = COMPRESSED_RGBA_S3TC_DXT5_EXT;
 DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC7] = COMPRESSED_RGBA_BPTC_UNORM;
 
-// export function encodeBasis(
-//   buffer: ArrayBuffer,
-//   BASIS: IBASIS,
-//   mipmap: boolean,
-// ) {
-//   const basisEncoder = new BASIS.BasisEncoder();
-//   // prettier-ignore
-//   basisEncoder.setSliceSourceImage(0, new Uint8Array(buffer), 0, 0, true);
-//   basisEncoder.setDebug(false);
-//   basisEncoder.setComputeStats(false);
-//   basisEncoder.setPerceptual(true);
-//   basisEncoder.setMipSRGB(true);
-//   basisEncoder.setQualityLevel(10);
-//   basisEncoder.setUASTC(true);
-//   basisEncoder.setMipGen(mipmap);
-
-//   const basisFileData = new Uint8Array(1024 * 1024 * 10);
-//   const startTime = Date.now();
-//   const numOutputBytes = basisEncoder.encode(basisFileData);
-//   const elapsed = Date.now() - startTime;
-//   console.log('encode cost:', elapsed);
-
-//   // prettier-ignore
-//   const actualBasisFileData = new Uint8Array(basisFileData.buffer, 0, numOutputBytes);
-//   basisEncoder.delete();
-//   return actualBasisFileData;
-// }
-
-// export function decodeBasis(
-//   buffer: ArrayBuffer,
-//   BASIS: IBASIS,
-//   ZSTD: ZSTDSimple,
-//   compress: number,
-// ) {
-//   const startTime = Date.now();
-
-//   let basisFile = new BASIS.BasisFile(new Uint8Array(buffer));
-
-//   const width = basisFile.getImageWidth(0, 0);
-//   const height = basisFile.getImageHeight(0, 0);
-//   const images = basisFile.getNumImages();
-//   const levels = basisFile.getNumLevels(0);
-//   const hasAlpha = basisFile.getHasAlpha();
-
-//   if (!width || !height || !images || !levels) {
-//     console.warn('Invalid .basis file');
-//     basisFile.close();
-//     basisFile.delete();
-//     return;
-//   }
-//   const types = {
-//     astc: BASIS_FORMAT.cTFASTC_4x4,
-//     bc7: BASIS_FORMAT.cTFBC7,
-//     dxt: hasAlpha ? BASIS_FORMAT.cTFBC3 : BASIS_FORMAT.cTFBC1,
-//     pvrtc: hasAlpha
-//       ? BASIS_FORMAT.cTFPVRTC1_4_RGBA
-//       : BASIS_FORMAT.cTFPVRTC1_4_RGB,
-//     etc1: BASIS_FORMAT.cTFETC1,
-//   };
-//   const alignedWidth = (width + 3) & ~3;
-//   const alignedHeight = (height + 3) & ~3;
-
-//   interface Output {
-//     hasAlpha: number;
-//     width: number;
-//     height: number;
-//     textures: Partial<Record<keyof typeof types, Uint8Array>>;
-//   }
-
-//   const output: Output = {
-//     hasAlpha,
-//     width: alignedWidth,
-//     height: alignedHeight,
-//     textures: {},
-//   };
-
-//   Object.keys(types).forEach(type => {
-//     const format = types[type];
-
-//     if (!basisFile.startTranscoding()) {
-//       console.warn('startTranscoding failed');
-//       basisFile.close();
-//       basisFile.delete();
-//       return;
-//     }
-
-//     const mipmaps = [];
-//     let mipmapsByteLen = 0;
-//     for (let mip = 0; mip < levels; mip++) {
-//       const dst = new Uint8Array(
-//         basisFile.getImageTranscodedSizeInBytes(0, mip, format),
-//       );
-//       const status = basisFile.transcodeImage(dst, 0, mip, format, 0, hasAlpha);
-
-//       if (!status) {
-//         console.warn('transcodeImage failed', type);
-//       } else {
-//         mipmaps.push(dst);
-//         mipmapsByteLen += dst.byteLength;
-//       }
-//     }
-
-//     let data = new Uint8Array(mipmapsByteLen);
-//     const header = Uint32Array.from([
-//       alignedWidth,
-//       alignedHeight,
-//       levels,
-//       mipmapsByteLen,
-//     ]);
-//     const offsets = new Uint32Array(levels);
-//     mipmaps.reduce((offset, mipmap, i) => {
-//       data.set(mipmap, offset);
-//       offsets[i] =
-//         header.byteLength + offsets.byteLength + offset + mipmap.byteLength;
-//       return offset + mipmap.byteLength;
-//     }, 0);
-
-//     // zstd压缩
-//     if (compress === 1) {
-//       // const t = Date.now();
-//       data = ZSTD.compress(data, 1); // 有内存限制且无SIMD
-//       // console.log('zstd cost:', Date.now() - t);
-//     }
-
-//     const dst = new Uint8Array(
-//       header.byteLength + offsets.byteLength + data.byteLength,
-//     );
-//     const dstHeader = new Uint32Array(dst.buffer, 0, header.length);
-//     const dstOffsets = new Uint32Array(
-//       dst.buffer,
-//       header.byteLength,
-//       offsets.length,
-//     );
-//     dstHeader.set(header, 0);
-//     dstOffsets.set(offsets, 0);
-//     dst.set(data, header.byteLength + offsets.byteLength);
-
-//     output.textures[type] = dst;
-//   });
-
-//   basisFile.close();
-//   basisFile.delete();
-//   console.log('deocde cost:', Date.now() - startTime);
-
-//   return output;
-// }
-
 const tmpFileBaseName = './gltf-tc.tmp';
 const tmpFiles = [];
 let tmpFileId = 0;
+const runTime = Date.now();
 
 function tmpFileName(ext = '') {
-  const fileName = `${tmpFileBaseName}${tmpFileId}${ext}`;
+  const fileName = `${tmpFileBaseName}.${runTime}.${tmpFileId}${ext}`;
   tmpFiles.push(fileName);
   tmpFileId++;
   return fileName;
@@ -229,7 +83,9 @@ export async function encodeBasisCli(
   mipmap: boolean,
   normal: boolean,
   sRGB: boolean,
+  enableLog = false,
 ): Promise<Uint8Array> {
+  const t = Date.now();
   const tmpFileImage = tmpFileName(ext);
   const tmpFileBasis = tmpFileName('.basis');
 
@@ -240,9 +96,12 @@ export async function encodeBasisCli(
   cmd += !sRGB ? ' -linear' : '';
 
   // await exec(`${cmd} -output_file ${tmpFileBasis}`);
-  await exec(`${cmd} -uastc -output_file ${tmpFileBasis}`);
-  // await exec(`${cmd} -uastc -uastc_level 2 -uastc_rdo_d 1024 -output_file ${tmpFileBasis}`);
+  // await exec(`${cmd} -uastc -output_file ${tmpFileBasis}`);
+  await exec(
+    `${cmd} -uastc -uastc_level 2 -uastc_rdo_d 1024 -output_file ${tmpFileBasis}`,
+  );
   const basisBuffer = fs.readFileSync(tmpFileBasis);
+  enableLog && console.log('encode basis cost', Date.now() - t);
   return new Uint8Array(basisBuffer);
 }
 
@@ -265,9 +124,9 @@ export async function decodeBasisCli(
   buffer: ArrayBuffer,
   BASIS: IBASIS,
   compress: number,
+  enableLog = false,
 ) {
-  const startTime = Date.now();
-
+  const log = Log(enableLog);
   const basisFile = new BASIS.BasisFile(new Uint8Array(buffer));
 
   const width = basisFile.getImageWidth(0, 0);
@@ -282,6 +141,7 @@ export async function decodeBasisCli(
     basisFile.delete();
     return;
   }
+
   const types = {
     astc: BASIS_FORMAT.cTFASTC_4x4,
     bc7: BASIS_FORMAT.cTFBC7,
@@ -314,6 +174,7 @@ export async function decodeBasisCli(
       return;
     }
 
+    const t = Date.now();
     const mipmaps = [];
     let mipmapsByteLen = 0;
     for (let mip = 0; mip < levels; mip++) {
@@ -329,6 +190,7 @@ export async function decodeBasisCli(
         mipmapsByteLen += dst.byteLength;
       }
     }
+    log('decode basis cost', Date.now() - t);
 
     let data = new Uint8Array(mipmapsByteLen);
     const header = Uint32Array.from([
@@ -338,6 +200,7 @@ export async function decodeBasisCli(
       mipmapsByteLen,
     ]);
     const offsets = new Uint32Array(levels);
+
     mipmaps.reduce((offset, mipmap, i) => {
       data.set(mipmap, offset);
       offsets[i] =
@@ -347,15 +210,15 @@ export async function decodeBasisCli(
 
     // zstd压缩
     if (compress === 1) {
-      // const t = Date.now();
+      const t = Date.now();
       // data = ZSTD.compress(data, 1);
       const tmpFile = tmpFileName();
       const tmpOutput = tmpFileName('.zst');
       fs.writeFileSync(tmpFile, data);
-      await exec(`zstd -1 ${tmpFile} -f -q -o ${tmpOutput}`);
+      await exec(`zstd -19 ${tmpFile} -f -q -o ${tmpOutput}`);
       const zstdBuffer = fs.readFileSync(tmpOutput);
       data = new Uint8Array(zstdBuffer);
-      // console.log('zstd cost:', Date.now() - t);
+      log('encode zstd cost:', Date.now() - t);
     }
 
     const dst = new Uint8Array(
@@ -374,10 +237,8 @@ export async function decodeBasisCli(
     output.textures[type] = dst;
   }
 
-  const elapsed = Date.now() - startTime;
   basisFile.close();
   basisFile.delete();
-  console.log('deocde cost:', elapsed);
 
   return output;
 }

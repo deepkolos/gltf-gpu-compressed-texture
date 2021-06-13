@@ -2,11 +2,19 @@ import fs from 'fs';
 import path from 'path';
 import CLI from './cli';
 import process from 'process';
-import { GLTF } from './types';
 import * as gltfPipe from 'gltf-pipeline';
 import BASIS from './libs/basis_encoder.js';
-import { decodeBasisCli, encodeBasisCli, Pkg, removeTmpFiles } from './basis';
-import { makeSureDir, readJsonSync, walkDir, writeJsonSync } from './utils';
+import { decodeBasisCli, encodeBasisCli, removeTmpFiles } from './basis';
+import {
+  walkDir,
+  writeGLTF,
+  makeSureDir,
+  readJsonSync,
+  getTextureInfo,
+  injectGLTFExtension,
+} from './utils';
+import type { GLTFPipeResult } from './types';
+
 const cli = new CLI();
 
 interface Args {
@@ -16,99 +24,14 @@ interface Args {
   mipmap: string;
 }
 
-type GLTFPipeResult = {
-  gltf: GLTF;
-  separateResources: { [key: string]: Buffer };
-};
-
-function updateGLTFTextures(
-  gltf: GLTF,
-  resName: string,
-  extensionName: string,
-  extensionDef: any,
-) {
-  gltf.textures.some(tex => {
-    if (gltf.images[tex.source].uri === resName) {
-      tex.extensions = tex.extensions || {};
-      tex.extensions[extensionName] = extensionDef;
-      return true;
-    }
-  });
-}
-
-function injectGLTFExtension(
-  result: GLTFPipeResult,
-  resName: string,
-  pkg: Pkg,
-  compress: number,
-) {
-  const extensionDef = {};
-  const baseName = path.basename(resName).replace(path.extname(resName), '');
-
-  // 更新separateResources和buffer
-  Object.keys(pkg.textures).forEach(type => {
-    const fileName = `${baseName}.${type}.bin`;
-    const buffer = pkg.textures[type] as Buffer;
-    const len = result.gltf.buffers.push({
-      name: `${baseName}.${type}`,
-      byteLength: buffer.byteLength,
-      uri: fileName,
-    });
-    extensionDef[type] = len - 1;
-    result.separateResources[fileName] = buffer;
-    // console.log('update separateResources', fileName);
-  });
-
-  // 更新texture extension
-  updateGLTFTextures(result.gltf, resName, 'EXT_GPU_COMPRESSED_TEXTURE', {
-    ...extensionDef,
-    width: pkg.width,
-    height: pkg.height,
-    hasAlpha: pkg.hasAlpha,
-    compress,
-  });
-}
-
-function writeGLTF(result: GLTFPipeResult, outdir: string, fileName: string) {
-  // 重新封装成gltf // TODO: glb
-  writeJsonSync(path.resolve(outdir, fileName + '.gltf'), result.gltf);
-  // 写入所依赖的分散资源
-  for (let [resName, buffer] of Object.entries(
-    result.separateResources as { [k: string]: Buffer },
-  )) {
-    fs.writeFileSync(path.resolve(outdir, resName), buffer);
-  }
-}
-
-function getTextureInfo(resName: string, result: GLTFPipeResult) {
-  const ext = path.extname(resName);
-  const imgIndex = result.gltf.images.findIndex(i => i.uri === resName);
-  const textureIndex = result.gltf.textures.findIndex(
-    i => i.source === imgIndex,
-  );
-  const normal = result.gltf.materials.some(
-    material => material.normalTexture?.index === textureIndex,
-  );
-  const sRGB = result.gltf.materials.some(material =>
-    [
-      material.emissiveTexture?.index,
-      material.pbrMetallicRoughness?.baseColorTexture?.index,
-      material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture
-        .index,
-      material.extensions?.KHR_materials_specular?.specularColorTexture.index,
-      material.extensions?.KHR_materials_sheen?.sheenColorTexture.index,
-    ].includes(textureIndex),
-  );
-  return { ext, normal, sRGB };
-}
-
 const main = async (args: Args) => {
   try {
     const t = Date.now();
     const { dir, outdir = './gltf' } = args;
     const compress = (args.compress ?? 1) | 0;
     const mipmap = (args.mipmap ?? 'true') !== 'false';
-    // console.log(dir, outdir, compress, mipmap);
+    // prettier-ignore
+    const sizeInfoSummary = { bitmap: 0, astc: 0, etc1: 0, bc7: 0, dxt: 0, pvrtc: 0 };
 
     makeSureDir(outdir);
 
@@ -116,14 +39,13 @@ const main = async (args: Args) => {
     basis.initializeBasis();
 
     await walkDir(dir, async (file, isDir) => {
-      // if (file.indexOf('BoomBox') === -1) return;
-
       const ext = path.extname(file);
       const isGLTF = !!ext.match(/\.gltf$/i);
       const isGLB = !!ext.match(/\.glb$/i);
       if (!isDir && (isGLB || isGLTF)) {
         const fileName = path.basename(file, ext);
         let result: GLTFPipeResult;
+
         if (isGLB) {
           result = await gltfPipe.glbToGltf(fs.readFileSync(file), {
             separate: true,
@@ -137,33 +59,44 @@ const main = async (args: Args) => {
         }
 
         // promise all + child_process的zstd encoder和basisu encoder
-        const entries = Object.entries(
-          result.separateResources as { [k: string]: Buffer },
-        );
         await Promise.all(
-          entries.map(async ([resName, buffer]) => {
-            if (resName.match(/\.(jpg|png|bmp)$/i)) {
+          Object.entries(result.separateResources).map(
+            async ([resName, buffer]) => {
+              if (!resName.match(/\.(jpg|png|bmp)$/i)) return;
+
+              const t = Date.now();
               const { normal, sRGB, ext } = getTextureInfo(resName, result);
-              console.log('processing', resName, normal, sRGB);
+              // prettier-ignore
               const basisFileData = await encodeBasisCli(
-                buffer,
-                ext,
-                mipmap,
-                normal,
-                sRGB,
-              );
+              buffer, ext, mipmap, normal, sRGB
+            );
               const pkg = await decodeBasisCli(basisFileData, basis, compress);
 
               injectGLTFExtension(result, resName, pkg, compress);
-            }
-          }),
+
+              const cost = Date.now() - t;
+              console.log(
+                `done: ${cost}ms\t${resName}\t法线:${normal}\tsRGB: ${sRGB}`,
+              );
+              sizeInfoSummary.bitmap += buffer.byteLength;
+              for (let k in pkg.textures) {
+                sizeInfoSummary[k] += pkg.textures[k].byteLength;
+              }
+            },
+          ),
         );
 
         writeGLTF(result, outdir, fileName);
       }
     });
 
-    console.log('\n', `cost: ${Date.now() - t}ms`, '\n');
+    console.log('');
+    console.log(`cost: ${((Date.now() - t) / 1000).toFixed(2)}s`);
+    console.log(`compress: ${compress}, summary:`);
+    for (let k in sizeInfoSummary) {
+      const sizeMB = sizeInfoSummary[k] / 1024 ** 2;
+      console.log(`  ${k.padEnd(6, ' ')}: ${sizeMB.toFixed(2)}MB`);
+    }
 
     removeTmpFiles();
   } catch (error) {

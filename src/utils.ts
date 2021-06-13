@@ -1,6 +1,92 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as shell from 'child_process';
+import type { Pkg } from './basis';
+import type { GLTF, GLTFPipeResult } from './types';
+
+export function updateGLTFTextures(
+  gltf: GLTF,
+  resName: string,
+  extensionName: string,
+  extensionDef: any,
+) {
+  gltf.textures.some(tex => {
+    if (gltf.images[tex.source].uri === resName) {
+      tex.extensions = tex.extensions || {};
+      tex.extensions[extensionName] = extensionDef;
+      return true;
+    }
+  });
+}
+
+export function injectGLTFExtension(
+  result: GLTFPipeResult,
+  resName: string,
+  pkg: Pkg,
+  compress: number,
+) {
+  const extensionDef = {};
+  const baseName = path.basename(resName).replace(path.extname(resName), '');
+
+  // 更新separateResources和buffer
+  Object.keys(pkg.textures).forEach(type => {
+    const fileName = `${baseName}.${type}.bin`;
+    const buffer = pkg.textures[type] as Buffer;
+    const len = result.gltf.buffers.push({
+      name: `${baseName}.${type}`,
+      byteLength: buffer.byteLength,
+      uri: fileName,
+    });
+    extensionDef[type] = len - 1;
+    result.separateResources[fileName] = buffer;
+  });
+
+  updateGLTFTextures(result.gltf, resName, 'EXT_GPU_COMPRESSED_TEXTURE', {
+    ...extensionDef,
+    width: pkg.width,
+    height: pkg.height,
+    hasAlpha: pkg.hasAlpha,
+    compress,
+  });
+}
+
+export function writeGLTF(
+  result: GLTFPipeResult,
+  outdir: string,
+  fileName: string,
+) {
+  // 重新封装成gltf // TODO: glb
+  writeJsonSync(path.resolve(outdir, fileName + '.gltf'), result.gltf);
+  // 写入所依赖的分散资源
+  for (let [resName, buffer] of Object.entries(
+    result.separateResources as { [k: string]: Buffer },
+  )) {
+    fs.writeFileSync(path.resolve(outdir, resName), buffer);
+  }
+}
+
+// 规则参考meshoptimizer
+export function getTextureInfo(resName: string, result: GLTFPipeResult) {
+  const ext = path.extname(resName);
+  const imgIndex = result.gltf.images.findIndex(i => i.uri === resName);
+  const textureIndex = result.gltf.textures.findIndex(
+    i => i.source === imgIndex,
+  );
+  const normal = result.gltf.materials.some(
+    material => material.normalTexture?.index === textureIndex,
+  );
+  const sRGB = result.gltf.materials.some(material =>
+    [
+      material.emissiveTexture?.index,
+      material.pbrMetallicRoughness?.baseColorTexture?.index,
+      material.extensions?.KHR_materials_pbrSpecularGlossiness?.diffuseTexture
+        .index,
+      material.extensions?.KHR_materials_specular?.specularColorTexture.index,
+      material.extensions?.KHR_materials_sheen?.sheenColorTexture.index,
+    ].includes(textureIndex),
+  );
+  return { ext, normal, sRGB };
+}
 
 export function exec(cmd: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -45,4 +131,8 @@ export async function walkDir(
 
 export function sleep(t: number) {
   return new Promise(r => setTimeout(r, t));
+}
+
+export function Log(enable: boolean) {
+  return enable ? (...args) => console.log(...args) : () => {};
 }

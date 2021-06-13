@@ -20,7 +20,11 @@ const renderer = new WebGL1Renderer();
 const scene = new Scene();
 
 gltfLoader.register((parser) => {
-  return new GLTFGPUCompressedTexture(parser, renderer, CompressedTexture)
+  return new GLTFGPUCompressedTexture(parser, renderer, {
+    CompressedTexture,
+    ZSTDDecoder,
+    ZSTDDecoderWorker
+  })
 });
 
 gltfLoader.loadAsync('./examples/glb/Fendi_banzi_blue.glb').then((gltf) => {
@@ -30,4 +34,8 @@ gltfLoader.loadAsync('./examples/glb/Fendi_banzi_blue.glb').then((gltf) => {
 
 ## TODO
 
-0. 多线程 encode
+0. 多线程 encode done
+1. 输出加载各压缩纹理类型体积统计 done
+2. 支持输出 GLB 格式
+3. basisu zstd 参数可自定义
+4. 少图片使用 UI 线程 decode, 多图片使用 worker decode

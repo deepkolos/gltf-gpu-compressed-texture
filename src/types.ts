@@ -54,3 +54,8 @@ export interface GLTF {
   buffers: Array<BufferDef>;
   materials: Array<MaterialDef>;
 }
+
+export type GLTFPipeResult = {
+  gltf: GLTF;
+  separateResources: { [key: string]: Buffer };
+};
