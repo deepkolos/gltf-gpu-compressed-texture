@@ -28,6 +28,17 @@
       .desc {
         text-align: center;
       }
+      .foot {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        color: #bac4ce;
+        text-align: center;
+        font-size: small;
+        user-select: none;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
@@ -41,6 +52,8 @@
         一个 GPU 压缩纹理降级的 GLTF 扩展，及其 CLI 生成工具
       </div>
     </div>
+    <div class="foot">Created By DeepKolos</div>
+
     <script type="module">
       import { GLTFGPUCompressedTexture } from '../dist/gltf-tc.esm.js';
       import * as THREE from 'https://threejs.org/build/three.module.js';
