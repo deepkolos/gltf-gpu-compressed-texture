@@ -74,7 +74,7 @@ gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then((gltf) => {
 | banzi_blue | gltf-tc no-zstd mimap no-worker | 25.80ms  | 1.50ms  | 27.30ms  | 2.2mb    | 22.3kb   |
 | banzi_blue | gltf-tc zstd mimap no-worker    | 37.90ms  | 1.60ms  | 39.50ms  | 648kb    | 22.3kb   |
 | banzi_blue | gltf ktx2 uastc                 | 534.70ms | 1.70ms  | 536.40ms | 684kb    | 249.3kb  |
-| banzi_blue | glb                             | 32.80ms  | 6.00ms  | 38.80ms  | 443kb    |          |
+| banzi_blue | glb                             | 32.80qms | 6.00ms  | 38.80ms  | 443kb    |          |
 | banzi_blue | gltf                            | 27.70ms  | 4.90ms  | 32.60ms  | 446kb    |          |
 | BoomBox    | gltf-tc zstd mipmap worker      | 153.50ms | 23.70ms | 177.20ms | 6.6mb    | 22.3kb   |
 | BoomBox    | gltf-tc zstd mipmap no-worker   | 241.10ms | 9.40ms  | 250.50ms | 6.6mb    | 22.3kb   |
@@ -91,7 +91,7 @@ gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then((gltf) => {
 
 MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/gltf-gpu-compressed-texture/tree/main/screenshots) 目录
 
-微信 webview 下 BoomBox 均比 glb/gltf 快，banzi_blue 则稍慢一些，KTX2 的方案依然很慢
+微信 webview 下 BoomBox 均比 glb/gltf 快，属于异常，chrome 下表现正常，banzi_blue 则稍慢一些，KTX2 的方案依然很慢
 
 ## TODO
 
