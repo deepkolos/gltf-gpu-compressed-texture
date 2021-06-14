@@ -42,11 +42,20 @@
       </div>
     </div>
     <script type="module">
-      import { GLTFGPUCompressedTexture } from '../dist/gltf-tc.esm.js';
+      import { GLTFGPUCompressedTexture } from './dist/gltf-tc.esm.js';
       import * as THREE from 'https://threejs.org/build/three.module.js';
       import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
       import { OrbitControls } from 'https://threejs.org/examples/jsm/controls/OrbitControls.js';
       import { KTX2Loader } from 'https://threejs.org/examples/jsm/loaders/KTX2Loader.js';
+
+      const useImageBitmapLoader =
+        typeof createImageBitmap !== 'undefined' &&
+        /Firefox/.test(navigator.userAgent) === false;
+
+      console.log(
+        `use ${useImageBitmapLoader ? 'ImageBitmapLoader' : 'TextureLoader'}`,
+      );
+      console.log('THREE.REVISION', THREE.REVISION);
 
       const { innerWidth: w, innerHeight: h } = window;
       const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -75,16 +84,7 @@
       scene.add(new THREE.AmbientLight(0xffffff, 1));
       scene.add(new THREE.DirectionalLight(0xffffff, 1));
 
-      const useImageBitmapLoader =
-        typeof createImageBitmap !== 'undefined' &&
-        /Firefox/.test(navigator.userAgent) === false;
-
-      console.log(
-        `use ${useImageBitmapLoader ? 'ImageBitmapLoader' : 'TextureLoader'}`,
-      );
-      console.log('THREE.REVISION', THREE.REVISION);
-
-      const baseUrl = '.';
+      const baseUrl = './examples';
       const bagCases = [
         {
           uri: '/glb/Fendi_banzi_green.glb',
@@ -93,15 +93,15 @@
         },
         {
           uri: '/no-mipmap/Fendi_banzi_blue.gltf',
-          name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: false worker_decode: false',
+          name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: false worker_decode: false(texture num < 4)',
         },
         {
           uri: '/no-zstd/Fendi_banzi_blue.gltf',
-          name: 'Fendi_banzi_blue gltf-tc zstd: false mipmap: true  worker_decode: false',
+          name: 'Fendi_banzi_blue gltf-tc zstd: false mipmap: true  worker_decode: false(texture num < 4)',
         },
         {
           uri: '/zstd/Fendi_banzi_blue.gltf',
-          name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: true  worker_decode: false',
+          name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: true  worker_decode: false(texture num < 4)',
         },
         {
           uri: '/glb-ktx2/Fendi_banzi_blue.ktx2.glb',
@@ -173,11 +173,7 @@
                 gltf.scene.position.x = -0.3 + i * offsetX;
                 gltf.scene.scale.set(...scaleDir.map(i => i * scale));
                 scene.add(gltf.scene);
-                // gltf.scene.traverse(node => {
-                //   if (node.isMesh) {
-                //     console.log(node);
-                //   }
-                // });
+
                 first &&
                   track('renderer.compile', () => {
                     renderer.compile(scene, camera);
