@@ -101,3 +101,11 @@ MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/g
 3. 支持输出 GLB 格式
 4. basisu zstd 参数可自定义
 5. 少图片使用 UI 线程 decode, 多图片使用 worker decode (done, 但是对于少贴图模型需要更详细规则
+
+### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
+
+# 赞助
+
+如果项目对您有帮助或者有适配需求，欢迎打赏
+
+<img src="https://upload-images.jianshu.io/upload_images/252050-d3d6bfdb1bb06ddd.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="赞赏码" width="300">
