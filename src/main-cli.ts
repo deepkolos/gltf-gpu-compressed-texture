@@ -27,7 +27,7 @@ interface Args {
 const main = async (args: Args) => {
   try {
     const t = Date.now();
-    const { dir, outdir = './gltf' } = args;
+    const { dir, outdir = './gltf-tc' } = args;
     const compress = (args.compress ?? 1) | 0;
     const mipmap = (args.mipmap ?? 'true') !== 'false';
     // prettier-ignore

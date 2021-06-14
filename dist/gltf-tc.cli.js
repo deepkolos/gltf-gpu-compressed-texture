@@ -571,7 +571,7 @@ const cli = new CLI();
 const main = async (args) => {
   try {
     const t = Date.now();
-    const { dir, outdir = './gltf' } = args;
+    const { dir, outdir = './gltf-tc' } = args;
     const compress = (_nullishCoalesce(args.compress, () => ( 1))) | 0;
     const mipmap = (_nullishCoalesce(args.mipmap, () => ( 'true'))) !== 'false';
     // prettier-ignore
