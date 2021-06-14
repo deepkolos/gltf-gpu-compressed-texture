@@ -69,7 +69,7 @@ export class GLTFGPUCompressedTexture {
       CompressedTexture: CompressedTexture;
     },
   ) {
-    this.name = 'EXT_GPU_COMPRESSED_TEXTURE';
+    this.name = 'EXT_gpu_compressed_texture';
     this.parser = parser;
     this.deps = deps;
     this.detectSupport(renderer);

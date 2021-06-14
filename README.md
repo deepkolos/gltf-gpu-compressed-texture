@@ -1,6 +1,6 @@
 # gltf-gpu-compressed-texture
 
-一个用于 GPU 压缩纹理降级的 GLTF 扩展，以及批量 CLI 转换工具，适用于`THREE`的`GLTFLoader`，[DEMO 地址](https://deepkolos.github.io/gltf-gpu-compressed-texture/examples/index.html)，[扩展定义](https://github.com/deepkolos/glTF/tree/master/extensions/2.0/Vendor/EXT_GPU_COMPRESSED_TEXTURE)
+一个用于 GPU 压缩纹理降级的 GLTF 扩展，以及批量 CLI 转换工具，适用于`THREE`的`GLTFLoader`，[DEMO 地址](https://deepkolos.github.io/gltf-gpu-compressed-texture/examples/index.html)，[扩展定义](https://github.com/deepkolos/glTF/tree/master/extensions/2.0/Vendor/EXT_gpu_compressed_texture)
 
 ## 命令行使用
 
@@ -97,7 +97,7 @@ MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/g
 
 ## TODO
 
-0. 多线程 encode (done
+0. 多进程 encode (done
 1. 输出加载各压缩纹理类型体积统计 (done
 2. 按一定优先级规则 GPU 压缩纹理类型
 3. 支持输出 GLB 格式

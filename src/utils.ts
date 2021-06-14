@@ -41,7 +41,7 @@ export function injectGLTFExtension(
     result.separateResources[fileName] = buffer;
   });
 
-  updateGLTFTextures(result.gltf, resName, 'EXT_GPU_COMPRESSED_TEXTURE', {
+  updateGLTFTextures(result.gltf, resName, 'EXT_gpu_compressed_texture', {
     ...extensionDef,
     width: pkg.width,
     height: pkg.height,
