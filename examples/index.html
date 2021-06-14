@@ -42,7 +42,7 @@
       </div>
     </div>
     <script type="module">
-      import { GLTFGPUCompressedTexture } from './dist/gltf-tc.esm.js';
+      import { GLTFGPUCompressedTexture } from '../dist/gltf-tc.esm.js';
       import * as THREE from 'https://threejs.org/build/three.module.js';
       import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
       import { OrbitControls } from 'https://threejs.org/examples/jsm/controls/OrbitControls.js';
@@ -84,7 +84,7 @@
       scene.add(new THREE.AmbientLight(0xffffff, 1));
       scene.add(new THREE.DirectionalLight(0xffffff, 1));
 
-      const baseUrl = './examples';
+      const baseUrl = './';
       const bagCases = [
         {
           uri: '/glb/Fendi_banzi_green.glb',
