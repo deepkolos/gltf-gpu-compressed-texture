@@ -13,6 +13,7 @@
     "example": "http-server .",
     "build": "rollup -c",
     "dev": "rollup -c -w",
+    "cli-help": "node dist/gltf-tc.cli.js -h",
     "cli-zstd": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/zstd",
     "cli-no-zstd": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/no-zstd 0",
     "cli-no-mipmap": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/no-mipmap 1 false",

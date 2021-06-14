@@ -2,24 +2,22 @@ import {
   UnsignedByteType,
   LinearFilter,
   LinearMipmapLinearFilter,
-  RGB_ETC2_Format,
+  // RGB_ETC2_Format,
   RGB_ETC1_Format,
   RGB_S3TC_DXT1_Format,
   RGB_PVRTC_4BPPV1_Format,
-  RGBAFormat,
+  // RGBAFormat,
   RGBA_BPTC_Format,
-  RGBA_ETC2_EAC_Format,
+  // RGBA_ETC2_EAC_Format,
   RGBA_ASTC_4x4_Format,
   RGBA_S3TC_DXT5_Format,
   RGBA_PVRTC_4BPPV1_Format,
   RepeatWrapping,
-  NearestFilter,
-  NearestMipmapNearestFilter,
-  LinearMipmapNearestFilter,
-  NearestMipmapLinearFilter,
   ClampToEdgeWrapping,
   MirroredRepeatWrapping,
 } from 'three/src/constants.js';
+import { ZSTDDecoder, wasm } from './libs/zstddec';
+import { ZSTDDecoderWorker } from './libs/zstddec.worker';
 import type { CompressedTexture, Texture, WebGLRenderer } from 'three';
 import type { GLTFParser } from 'three/examples/jsm/loaders/GLTFLoader';
 
@@ -58,8 +56,6 @@ export class GLTFGPUCompressedTexture {
   };
   deps: {
     CompressedTexture: CompressedTexture;
-    ZSTDDecoder: any;
-    ZSTDDecoderWorker: any;
   };
 
   static useWorker = true;
@@ -68,8 +64,6 @@ export class GLTFGPUCompressedTexture {
     parser: GLTFParser,
     renderer: WebGLRenderer,
     deps: {
-      ZSTDDecoder: any;
-      ZSTDDecoderWorker: any;
       CompressedTexture: CompressedTexture;
     },
   ) {
@@ -77,8 +71,8 @@ export class GLTFGPUCompressedTexture {
     this.parser = parser;
     this.deps = deps;
     this.detectSupport(renderer);
-    this.zstd = new deps.ZSTDDecoder();
-    this.zstdWorker = new deps.ZSTDDecoderWorker();
+    this.zstd = new ZSTDDecoder();
+    this.zstdWorker = new ZSTDDecoderWorker(wasm);
   }
 
   detectSupport(renderer: WebGLRenderer) {
@@ -109,11 +103,6 @@ export class GLTFGPUCompressedTexture {
 
     if (!textureDef.extensions || !textureDef.extensions[name]) return null;
 
-    if (!this.supportInfo)
-      throw new Error(
-        'GLTFGPUCompressedTexture: need run detectSupport(renderer) before load gtlf',
-      );
-
     const extensionDef = textureDef.extensions[name];
     const { hasAlpha, compress } = extensionDef;
 
@@ -134,7 +123,6 @@ export class GLTFGPUCompressedTexture {
 
           if (compress === 1) {
             const input = Uint8Array.from(new Uint8Array(buffer, dataOffset));
-            // worker需要多贴图的纹理才有优势, 数量少在UI线程decode
             if (!GLTFGPUCompressedTexture.useWorker) {
               const output = this.zstd.decode(input, dataLen);
               bufferData = new Uint8Array(totalLen);
@@ -188,12 +176,12 @@ export class GLTFGPUCompressedTexture {
             texture.minFilter =
               mipmaps.length === 1 ? LinearFilter : LinearMipmapLinearFilter;
             texture.magFilter = LinearFilter;
+            texture.needsUpdate = true;
 
             parser.associations.set(texture, {
               type: 'textures',
               index: textureIndex,
             });
-            texture.needsUpdate = true;
             return texture;
           });
         });
@@ -202,5 +190,9 @@ export class GLTFGPUCompressedTexture {
 
     // 降级为 PNG/JPEG.
     return parser.loadTexture(textureIndex);
+  }
+
+  dispose() {
+    this.zstdWorker.dispose();
   }
 }

@@ -6,28 +6,59 @@
 
 ```sh
 > npm i gltf-gpu-compressed-texture -S
-> gltf-tc -i ./exmaples/glb
+# 查看帮助
+> gltf-tc -h
+
+  -h --help                                              显示帮助
+  -i --input [dir] [?outdir] [?compress] [?mipmap]       把gltf所使用纹理转换为GPU压缩纹理并支持fallback
+
+Examples:
+  gltf-tc -i '../examples/glb' '../examples/zstd'
+  gltf-tc -i '../examples/glb' '../examples/no-zstd' 0
+  gltf-tc -i '../examples/glb' '../examples/no-mipmap' 1 false
+  gltf-tc -i '../examples/glb' '../examples/no-zstd-no-mipmap' 0 false
+
+# 执行
+> gltf-tc -i '../examples/glb' '../examples/zstd'
+
+done: 6417ms    image3.png      法线:false      sRGB: true
+done: 13746ms   image2.png      法线:true       sRGB: false
+done: 14245ms   image0.png      法线:false      sRGB: true
+done: 14491ms   image1.png      法线:false      sRGB: false
+done: 577ms     FINDI_TOUMING01_nomarl1.jpg     法线:true       sRGB: false
+done: 568ms     FINDI_TOUMING01_Basecoler.png   法线:false      sRGB: true
+done: 1267ms    lanse_banzi-1.jpg       法线:false      sRGB: true
+done: 577ms     FINDI_TOUMING01_Basecoler.png   法线:false      sRGB: true
+done: 604ms     FINDI_TOUMING01_nomarl1.jpg     法线:true       sRGB: false
+done: 1280ms    lvse_banzi-1.jpg        法线:false      sRGB: true
+
+cost: 17.75s
+compress: 1, summary:
+  bitmap: 11.22MB
+  astc  : 7.18MB
+  etc1  : 1.85MB
+  bc7   : 7.16MB
+  dxt   : 3.04MB
+  pvrtc : 2.28MB
 ```
 
 ## NPM 包使用
 
 ```js
-import { GLTFLoader, CompressedTexture， WebGL1Renderer } from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader, CompressedTexture， WebGLRenderer } from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
 import GLTFGPUCompressedTexture from 'gltf-gpu-compressed-texture';
 
 const gltfLoader = new GLTFLoader();
-const renderer = new WebGL1Renderer();
+const renderer = new WebGLRenderer();
 const scene = new Scene();
 
-gltfLoader.register((parser) => {
+gltfLoader.register(parser => {
   return new GLTFGPUCompressedTexture(parser, renderer, {
-    CompressedTexture,
-    ZSTDDecoder,
-    ZSTDDecoderWorker
-  })
+    CompressedTexture: THREE.CompressedTexture,
+  });
 });
 
-gltfLoader.loadAsync('./examples/glb/Fendi_banzi_blue.glb').then((gltf) => {
+gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then((gltf) => {
   scene.add(gltf.scene);
 });
 ```
@@ -36,6 +67,7 @@ gltfLoader.loadAsync('./examples/glb/Fendi_banzi_blue.glb').then((gltf) => {
 
 0. 多线程 encode done
 1. 输出加载各压缩纹理类型体积统计 done
-2. 支持输出 GLB 格式
-3. basisu zstd 参数可自定义
-4. 少图片使用 UI 线程 decode, 多图片使用 worker decode
+2. 按一定优先级规则 GPU 压缩纹理类型
+3. 支持输出 GLB 格式
+4. basisu zstd 参数可自定义
+5. 少图片使用 UI 线程 decode, 多图片使用 worker decode
