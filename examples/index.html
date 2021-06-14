@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>gltf-gpu-compressed-texture</title>
+    <style>
+      * {
+        padding: 0;
+        margin: 0;
+      }
+      .can {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        text-shadow: 0 0 2px white;
+      }
+      .title {
+        color: #123456;
+        text-align: center;
+        padding: 10px 0;
+        font-size: larger;
+        display: block;
+        text-decoration: none;
+      }
+      .desc {
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="can">
+      <a
+        class="title"
+        href="https://github.com/deepkolos/gltf-gpu-compressed-texture"
+        >gltf-gpu-compressed-texture</a
+      >
+      <div class="desc">
+        一个 GPU 压缩纹理降级的 GLTF 扩展，及其 CLI 生成工具
+      </div>
+    </div>
+    <script type="module">
+      import { GLTFGPUCompressedTexture } from '../dist/gltf-tc.esm.js';
+      import * as THREE from 'https://threejs.org/build/three.module.js';
+      import { GLTFLoader } from 'https://threejs.org/examples/jsm/loaders/GLTFLoader.js';
+      import { OrbitControls } from 'https://threejs.org/examples/jsm/controls/OrbitControls.js';
+      import { KTX2Loader } from 'https://threejs.org/examples/jsm/loaders/KTX2Loader.js';
+
+      const { innerWidth: w, innerHeight: h } = window;
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      const camera = new THREE.PerspectiveCamera(75, w / h, 0.1, 100);
+      const scene = new THREE.Scene();
+      const controls = new OrbitControls(camera, renderer.domElement);
+      const gltfLoader = new GLTFLoader();
+      const ktx2Loader = new KTX2Loader();
+
+      ktx2Loader
+        .setTranscoderPath('https://threejs.org/examples/js/libs/basis/')
+        .detectSupport(renderer);
+      gltfLoader.setKTX2Loader(ktx2Loader);
+      gltfLoader.register(parser => {
+        return new GLTFGPUCompressedTexture(parser, renderer, {
+          CompressedTexture: THREE.CompressedTexture,
+        });
+      });
+
+      camera.position.z = 2;
+      controls.enableDamping = true;
+      renderer.setPixelRatio(devicePixelRatio);
+      renderer.setSize(w, h);
+      renderer.outputEncoding = THREE.sRGBEncoding;
+      scene.background = new THREE.Color(0xffffff);
+      scene.add(new THREE.AmbientLight(0xffffff, 1));
+      scene.add(new THREE.DirectionalLight(0xffffff, 1));
+
+      const useImageBitmapLoader =
+        typeof createImageBitmap !== 'undefined' &&
+        /Firefox/.test(navigator.userAgent) === false;
+
+      console.log(
+        `use ${useImageBitmapLoader ? 'ImageBitmapLoader' : 'TextureLoader'}`,
+      );
+      console.log('THREE.REVISION', THREE.REVISION);
+
+      const baseUrl = '.';
+      const bagCases = [
+        {
+          uri: '/glb/Fendi_banzi_green.glb',
+          name: 'Fendi_banzi_green 用于初始化渲染',
+          first: true,
+        },
+        {
+          uri: '/no-mipmap/Fendi_banzi_blue.gltf',
+          name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: false worker_decode: false',
+        },
+        {
+          uri: '/no-zstd/Fendi_banzi_blue.gltf',
+          name: 'Fendi_banzi_blue gltf-tc zstd: false mipmap: true  worker_decode: false',
+        },
+        {
+          uri: '/zstd/Fendi_banzi_blue.gltf',
+          name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: true  worker_decode: false',
+        },
+        {
+          uri: '/glb-ktx2/Fendi_banzi_blue.ktx2.glb',
+          name: 'Fendi_banzi_blue glb-ktx2 uastc',
+        },
+        {
+          uri: '/glb/Fendi_banzi_blue.glb',
+          name: 'Fendi_banzi_blue glb',
+        },
+        {
+          uri: '/gltf/Fendi_banzi_blue.gltf',
+          name: 'Fendi_banzi_blue gltf',
+        },
+      ];
+      const BoomBoxCases = [
+        {
+          uri: '/zstd/BoomBox.gltf',
+          name: 'BoomBox gltf-tc zstd: true  mipmap: true worker_decode: true',
+        },
+        {
+          uri: '/zstd/BoomBox.gltf',
+          name: 'BoomBox gltf-tc zstd: true  mipmap: true worker_decode: false',
+          noWorker: true,
+        },
+        {
+          uri: '/glb-ktx2/BoomBox.ktx2.glb',
+          name: 'BoomBox glb ktx2 uastc',
+        },
+        {
+          uri: '/glb/BoomBox.glb',
+          name: 'BoomBox glb',
+        },
+        {
+          uri: '/gltf/BoomBox.gltf',
+          name: 'BoomBox gltf',
+        },
+      ];
+      const cases = [
+        {
+          scale: 2,
+          items: bagCases,
+          offsetX: 0,
+          offsetY: 0.3,
+        },
+        {
+          scale: 16,
+          items: BoomBoxCases,
+          offsetX: 0.5,
+          offsetY: 0.4,
+          scaleDir: [-1, 1, -1],
+        },
+      ];
+
+      const load = async () => {
+        for (let i = 0; i < cases.length; i++) {
+          for (let j = 0; j < cases[i].items.length; j++) {
+            const { scale, offsetX, offsetY, scaleDir = [1, 1, 1] } = cases[i];
+            const { name, noWorker, uri, first } = cases[i].items[j];
+
+            await trackGroup(
+              name,
+              async () => {
+                GLTFGPUCompressedTexture.preferUseWorker = !noWorker;
+                const gltf = await track('load', () =>
+                  gltfLoader.loadAsync(baseUrl + uri),
+                );
+                gltf.parser = null;
+                gltf.scene.position.y = 1 - j * offsetY;
+                gltf.scene.position.x = -0.3 + i * offsetX;
+                gltf.scene.scale.set(...scaleDir.map(i => i * scale));
+                scene.add(gltf.scene);
+                // gltf.scene.traverse(node => {
+                //   if (node.isMesh) {
+                //     console.log(node);
+                //   }
+                // });
+                first &&
+                  track('renderer.compile', () => {
+                    renderer.compile(scene, camera);
+                  });
+                track('render', render);
+                // track('render2', render);
+                await sleep(120);
+              },
+              printGroup,
+            );
+          }
+        }
+
+        const t = performance.now();
+        render(true);
+        console.log(
+          `start render loop ${(performance.now() - t).toFixed(2)}ms`,
+        );
+      };
+
+      load();
+
+      const render = rfa => {
+        controls.update();
+        renderer.render(scene, camera);
+        rfa && requestAnimationFrame(render);
+      };
+
+      document.body.append(renderer.domElement);
+      render();
+
+      window.onresize = () => {
+        renderer.setSize(innerWidth, innerHeight);
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+      };
+
+      // utils
+      function sleep(t) {
+        return new Promise(r => setTimeout(r, t));
+      }
+
+      var currTrackInfo = {};
+      async function track(name, fn) {
+        const t = performance.now();
+        const res = await fn();
+        const cost = performance.now() - t;
+        // console.log(name, cost);
+        currTrackInfo[name] = cost;
+        return res;
+      }
+      async function trackGroup(name, fn, printFn) {
+        console.log(`%c${name}`, 'color: white; background-color: #123456;');
+        currTrackInfo = {};
+        await fn();
+        printFn(currTrackInfo);
+      }
+      function printGroup(trackInfo) {
+        trackInfo['load + render'] = trackInfo.load + trackInfo.render;
+        let maxKeyLen = 0;
+
+        Object.keys(trackInfo).forEach(
+          key => (maxKeyLen = Math.max(key.length, maxKeyLen)),
+        );
+
+        const summaryStr = Object.keys(trackInfo)
+          .map(
+            key =>
+              `  ${key.padEnd(maxKeyLen, ' ')}: ${trackInfo[key].toFixed(2)}ms`,
+          )
+          .join('\n');
+        console.log(summaryStr);
+      }
+    </script>
+  </body>
+</html>

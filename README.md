@@ -2,6 +2,8 @@
 
 一个用于 GPU 压缩纹理降级的 GLTF 扩展，以及批量 CLI 转换工具
 
+> 注：对比使用的 KTX2Loader 全部 zstd decode 是在 UI 线程，[decode in Web Worker PR](https://github.com/mrdoob/three.js/pull/21984)已提交
+
 ## 命令行使用
 
 ```sh
@@ -65,9 +67,9 @@ gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then((gltf) => {
 
 ## TODO
 
-0. 多线程 encode done
-1. 输出加载各压缩纹理类型体积统计 done
+0. 多线程 encode (done
+1. 输出加载各压缩纹理类型体积统计 (done
 2. 按一定优先级规则 GPU 压缩纹理类型
 3. 支持输出 GLB 格式
 4. basisu zstd 参数可自定义
-5. 少图片使用 UI 线程 decode, 多图片使用 worker decode
+5. 少图片使用 UI 线程 decode, 多图片使用 worker decode (done, 但是对于少贴图模型需要更详细规则
