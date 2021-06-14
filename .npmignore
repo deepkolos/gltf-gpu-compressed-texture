@@ -1,4 +1,10 @@
 node_modules
-package-lock.json
 examples
 test
+screenshots
+
+package-lock.json
+pnpm-lock.yaml
+
+add-cli-entry.js
+rollup.config.js
