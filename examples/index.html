@@ -27,6 +27,8 @@
       }
       .desc {
         text-align: center;
+        font-size: small;
+        color: #123456;
       }
       .foot {
         position: absolute;
@@ -49,7 +51,8 @@
         >gltf-gpu-compressed-texture</a
       >
       <div class="desc">
-        一个 GPU 压缩纹理降级的 GLTF 扩展，及其 CLI 生成工具
+        一个 GPU 压缩纹理降级的 GLTF 扩展，及其 CLI 生成工具<br />
+        打开Console查看性能数据
       </div>
     </div>
     <div class="foot">Created By DeepKolos</div>
@@ -65,6 +68,9 @@
         typeof createImageBitmap !== 'undefined' &&
         /Firefox/.test(navigator.userAgent) === false;
 
+      console.log(
+        'git pages 第一次加载比较慢，待加载完，取消disable cache刷新查看decode和render的耗时',
+      );
       console.log(
         `use ${useImageBitmapLoader ? 'ImageBitmapLoader' : 'TextureLoader'}`,
       );
@@ -182,7 +188,7 @@
                   gltfLoader.loadAsync(baseUrl + uri),
                 );
                 gltf.parser = null;
-                gltf.scene.position.y = 1 - j * offsetY;
+                gltf.scene.position.y = 0.9 - j * offsetY;
                 gltf.scene.position.x = -0.3 + i * offsetX;
                 gltf.scene.scale.set(...scaleDir.map(i => i * scale));
                 scene.add(gltf.scene);
