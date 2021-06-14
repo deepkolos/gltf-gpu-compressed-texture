@@ -47,7 +47,7 @@ compress: 1, summary:
 ## NPM 包使用
 
 ```js
-import { GLTFLoader, CompressedTexture， WebGLRenderer } from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
+import { GLTFLoader, CompressedTexture, WebGLRenderer } from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
 import GLTFGPUCompressedTexture from 'gltf-gpu-compressed-texture';
 
 const gltfLoader = new GLTFLoader();
