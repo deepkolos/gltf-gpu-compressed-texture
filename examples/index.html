@@ -57,6 +57,10 @@
     </div>
     <div class="foot">Created By DeepKolos</div>
 
+    <script src="https://cdn.bootcdn.net/ajax/libs/vConsole/3.3.4/vconsole.min.js"></script>
+    <script>
+      location.search.indexOf('?d=true') !== -1 && new VConsole();
+    </script>
     <script type="module">
       import { GLTFGPUCompressedTexture } from '../dist/gltf-tc.esm.js';
       import * as THREE from 'https://threejs.org/build/three.module.js';
