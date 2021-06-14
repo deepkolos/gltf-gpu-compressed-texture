@@ -4,6 +4,8 @@
 
 ## 命令行使用
 
+> 使用之前请确保[zstd](https://github.com/facebook/zstd/releases/)和[basisu](https://github.com/BinomialLLC/basis_universal/releases/)已经在 PATH 里面
+
 ```sh
 > npm i gltf-gpu-compressed-texture -S
 # 查看帮助
