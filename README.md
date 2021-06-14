@@ -1,6 +1,6 @@
 # gltf-gpu-compressed-texture
 
-一个用于 GPU 压缩纹理降级的 GLTF 扩展，以及批量 CLI 转换工具
+一个用于 GPU 压缩纹理降级的 GLTF 扩展，以及批量 CLI 转换工具，[DEMO 地址](https://deepkolos.github.io/gltf-gpu-compressed-texture/examples/index.html?t=2)
 
 > 注：对比使用的 KTX2Loader 全部 zstd decode 是在 UI 线程，[decode in Web Worker PR](https://github.com/mrdoob/three.js/pull/21984)已提交
 
