@@ -15,13 +15,13 @@
   -i --input [dir] [?outdir] [?compress] [?mipmap]       把gltf所使用纹理转换为GPU压缩纹理并支持fallback
 
 Examples:
-  gltf-tc -i '../examples/glb' '../examples/zstd'
-  gltf-tc -i '../examples/glb' '../examples/no-zstd' 0
-  gltf-tc -i '../examples/glb' '../examples/no-mipmap' 1 false
-  gltf-tc -i '../examples/glb' '../examples/no-zstd-no-mipmap' 0 false
+  gltf-tc -i ./examples/glb ./examples/zstd
+  gltf-tc -i ./examples/glb ./examples/no-zstd 0
+  gltf-tc -i ./examples/glb ./examples/no-mipmap 1 false
+  gltf-tc -i ./examples/glb ./examples/no-zstd-no-mipmap 0 false
 
 # 执行
-> gltf-tc -i '../examples/glb' '../examples/zstd'
+> gltf-tc -i ./examples/glb ./examples/zstd
 
 done: 6417ms    image3.png      法线:false      sRGB: true
 done: 13746ms   image2.png      法线:true       sRGB: false
