@@ -114,9 +114,9 @@ cli
     main,
   )
   
-  .action("gltf-tc -i '../examples/glb' '../examples/zstd'", '', 'Examples')
-  .action("gltf-tc -i '../examples/glb' '../examples/no-zstd' 0", '', 'Examples')
-  .action("gltf-tc -i '../examples/glb' '../examples/no-mipmap' 1 false", '', 'Examples')
-  .action("gltf-tc -i '../examples/glb' '../examples/no-zstd-no-mipmap' 0 false", '', 'Examples')
+  .action("gltf-tc -i ./examples/glb' ./examples/zstd", '', 'Examples')
+  .action("gltf-tc -i ./examples/glb' ./examples/no-zstd 0", '', 'Examples')
+  .action("gltf-tc -i ./examples/glb' ./examples/no-mipmap 1 false", '', 'Examples')
+  .action("gltf-tc -i ./examples/glb' ./examples/no-zstd-no-mipmap 0 false", '', 'Examples')
 
   .run(process.argv.slice(2));

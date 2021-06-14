@@ -1,6 +1,11 @@
 # 1.0.0 (2021-06-14)
 
 
+### Bug Fixes
+
+* cli examples ([8035e02](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/8035e02d49b4d8b56e64c037ac5622d159338bec))
+
+
 ### Features
 
 * add examples page & cli typo fix & integrate zstd ([e6508a3](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/e6508a3a8b4fa649248ac2efb405b16176dba4a4))
