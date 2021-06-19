@@ -116,7 +116,7 @@ compress: 1, DamagedHelmet summary:
   etc1  : 4.71MB (1.65MB)
 ```
 
-MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/gltf-gpu-compressed-texture/tree/main/screenshots) 目录
+MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/deepkolos/gltf-gpu-compressed-texture/tree/main/screenshots) 目录
 
 微信 webview 下 BoomBox 均比 glb/gltf 快，应该属于异常，chrome 下表现正常，banzi_blue 则稍慢一些，KTX2 的方案依然很慢
 
@@ -127,6 +127,7 @@ MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/g
 0. 优先使用 pvrtc，因为其体积上面与 jpg 相差不大，与 PNG 有较大优势（done
 1. 无透明通道优先使用 etc1
 2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理
+3. 少图片和小图片 UI 线程 decode，否则在 Worker 线程 decode（done少图片
 
 ## TODO
 
@@ -135,7 +136,7 @@ MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/g
 2. 按一定优先级规则 GPU 压缩纹理类型 （优先 pvrtc
 3. 支持输出 GLB 格式
 4. basisu zstd 参数可自定义（basisu done
-5. 少图片使用 UI 线程 decode, 多图片使用 worker decode (done, 但是对于少贴图模型需要更详细规则
+5. 少图片使用 UI 线程 decode, 多图片使用 worker decode （done, 但是对于少贴图模型需要更详细规则
 
 ### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
 
