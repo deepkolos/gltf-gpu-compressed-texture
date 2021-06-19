@@ -11,43 +11,56 @@
 # 查看帮助
 > gltf-tc -h
 
-  -h --help                                              显示帮助
-  -i --input [dir] [?outdir] [?compress] [?mipmap]       把gltf所使用纹理转换为GPU压缩纹理并支持fallback
+  -h --help                                                              显示帮助
+  -i --input [dir] [?outdir] [?compress] [?mipmap] [?basisuArgs]         把gltf所使用纹理转换为GPU压缩纹理并支
+持fallback
 
 Examples:
-  gltf-tc -i ./examples/glb ./examples/zstd
-  gltf-tc -i ./examples/glb ./examples/no-zstd 0
-  gltf-tc -i ./examples/glb ./examples/no-mipmap 1 false
-  gltf-tc -i ./examples/glb ./examples/no-zstd-no-mipmap 0 false
+  gltf-tc -i ./examples/glb' ./examples/zstd
+  gltf-tc -i ./examples/glb' ./examples/no-zstd 0
+  gltf-tc -i ./examples/glb' ./examples/no-mipmap 1 false
+  gltf-tc -i ./examples/glb' ./examples/no-zstd-no-mipmap 0 false
+  gltf-tc -i ./examples/glb' ./examples/zstd 1 true "-uastc"
 
 # 执行
 > gltf-tc -i ./examples/glb ./examples/zstd
 
-done: 6417ms    image3.png      法线:false      sRGB: true
-done: 13746ms   image2.png      法线:true       sRGB: false
-done: 14245ms   image0.png      法线:false      sRGB: true
-done: 14491ms   image1.png      法线:false      sRGB: false
-done: 577ms     FINDI_TOUMING01_nomarl1.jpg     法线:true       sRGB: false
-done: 568ms     FINDI_TOUMING01_Basecoler.png   法线:false      sRGB: true
-done: 1267ms    lanse_banzi-1.jpg       法线:false      sRGB: true
-done: 577ms     FINDI_TOUMING01_Basecoler.png   法线:false      sRGB: true
-done: 604ms     FINDI_TOUMING01_nomarl1.jpg     法线:true       sRGB: false
-done: 1280ms    lvse_banzi-1.jpg        法线:false      sRGB: true
+done: 9855ms    image3.png      法线:false      sRGB: true
+done: 15337ms   image2.png      法线:true       sRGB: false
+done: 16189ms   image0.png      法线:false      sRGB: true
+done: 16894ms   image1.png      法线:false      sRGB: false
+done: 600ms     FINDI_TOUMING01_nomarl1.jpg     法线:true       sRGB: false
+done: 612ms     FINDI_TOUMING01_Basecoler.png   法线:false      sRGB: true
+done: 1317ms    lanse_banzi-1.jpg       法线:false      sRGB: true
 
-cost: 17.75s
-compress: 1, summary:
-  bitmap: 11.22MB
-  astc  : 7.18MB
-  etc1  : 1.85MB
-  bc7   : 7.16MB
-  dxt   : 3.04MB
-  pvrtc : 2.28MB
+cost: 18.88s
+compress: 1, BoomBox summary:
+  bitmap: 10.53MB (0.00MB)
+  astc  : 6.12MB (-4.41MB)
+  bc7   : 6.08MB (-4.44MB)
+  dxt   : 2.56MB (-7.97MB)
+  pvrtc : 1.87MB (-8.66MB)
+  etc1  : 1.41MB (-9.12MB)
+
+compress: 1, Fendi_banzi_blue summary:
+  bitmap: 0.33MB (0.00MB)
+  astc  : 0.52MB (0.19MB)
+  bc7   : 0.53MB (0.19MB)
+  dxt   : 0.23MB (-0.10MB)
+  pvrtc : 0.20MB (-0.14MB)
+  etc1  : 0.21MB (-0.12MB)
+
+Done in 19.43s.
 ```
 
 ## NPM 包使用
 
 ```js
-import { GLTFLoader, CompressedTexture, WebGLRenderer } from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
+import {
+  GLTFLoader,
+  CompressedTexture,
+  WebGLRenderer,
+} from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
 import GLTFGPUCompressedTexture from 'gltf-gpu-compressed-texture';
 
 const gltfLoader = new GLTFLoader();
@@ -60,7 +73,7 @@ gltfLoader.register(parser => {
   });
 });
 
-gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then((gltf) => {
+gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then(gltf => {
   scene.add(gltf.scene);
 });
 ```
@@ -91,17 +104,37 @@ gltfLoader.loadAsync('./examples/zstd/BoomBox.gltf').then((gltf) => {
 可以明显看到相比于 KTX2+uastc 的压缩纹理方案，从加载耗时和依赖大小，有**大幅优势**，模型大小也有不少优势\
 同时也可以看到 BoomBox gltf-tc zstd mipmap worker load+render 耗时，与 gltf 耗时 相差不大，但是模型大小有大幅优势
 
+但是这些都是相对于 PNG 和压缩纹理对比，从 DamagedHelmet 可看到 jpg 的体积对比，jpg 有**十分巨大**的体积优势
+
+```sh
+compress: 1, DamagedHelmet summary:
+  bitmap: 3.06MB (0.00MB)
+  astc  : 11.49MB (8.42MB)
+  bc7   : 11.52MB (8.46MB)
+  dxt   : 5.15MB (2.09MB)
+  pvrtc : 4.12MB (1.05MB)
+  etc1  : 4.71MB (1.65MB)
+```
+
 MI 8 下的测试数据可以查看 [screenshots](https://github.com/deepkolos/gltf-gpu-compressed-texture/tree/main/screenshots) 目录
 
-微信 webview 下 BoomBox 均比 glb/gltf 快，属于异常，chrome 下表现正常，banzi_blue 则稍慢一些，KTX2 的方案依然很慢
+微信 webview 下 BoomBox 均比 glb/gltf 快，应该属于异常，chrome 下表现正常，banzi_blue 则稍慢一些，KTX2 的方案依然很慢
+
+> 示例还有 FlightHelmetCases，但是图片资源太大，火狐 lost context, chrome render process 崩溃
+
+## 加载策略
+
+0. 优先使用 pvrtc，因为其体积上面与 jpg 相差不大，与 PNG 有较大优势（done
+1. 无透明通道优先使用 etc1
+2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理
 
 ## TODO
 
 0. 多进程 encode (done
 1. 输出加载各压缩纹理类型体积统计 (done
-2. 按一定优先级规则 GPU 压缩纹理类型
+2. 按一定优先级规则 GPU 压缩纹理类型 （优先 pvrtc
 3. 支持输出 GLB 格式
-4. basisu zstd 参数可自定义
+4. basisu zstd 参数可自定义（basisu done
 5. 少图片使用 UI 线程 decode, 多图片使用 worker decode (done, 但是对于少贴图模型需要更详细规则
 
 ### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
