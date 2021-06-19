@@ -16,11 +16,11 @@
 持fallback
 
 Examples:
-  gltf-tc -i ./examples/glb' ./examples/zstd
-  gltf-tc -i ./examples/glb' ./examples/no-zstd 0
-  gltf-tc -i ./examples/glb' ./examples/no-mipmap 1 false
-  gltf-tc -i ./examples/glb' ./examples/no-zstd-no-mipmap 0 false
-  gltf-tc -i ./examples/glb' ./examples/zstd 1 true "-uastc"
+  gltf-tc -i ./examples/glb ./examples/zstd
+  gltf-tc -i ./examples/glb ./examples/no-zstd 0
+  gltf-tc -i ./examples/glb ./examples/no-mipmap 1 false
+  gltf-tc -i ./examples/glb ./examples/no-zstd-no-mipmap 0 false
+  gltf-tc -i ./examples/glb ./examples/zstd 1 true "-uastc"
 
 # 执行
 > gltf-tc -i ./examples/glb ./examples/zstd
