@@ -137,6 +137,7 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 3. 支持输出 GLB 格式
 4. basisu zstd 参数可自定义（basisu done
 5. 少图片使用 UI 线程 decode, 多图片使用 worker decode （done, 但是对于少贴图模型需要更详细规则
+6. 支持ETC2格式
 
 ### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
 

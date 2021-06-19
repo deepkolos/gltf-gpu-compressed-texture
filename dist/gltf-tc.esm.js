@@ -464,10 +464,12 @@ class GLTFGPUCompressedTexture {
         let bufferData = new Uint8Array(buffer);
 
         if (decoder) {
+          const t = performance.now();
           const input = Uint8Array.from(new Uint8Array(buffer, dataOffset));
           const output = await decoder.decode(input, dataLen);
           bufferData = new Uint8Array(totalLen);
           bufferData.set(output, dataOffset);
+          console.log('zstd decode cost', performance.now() - t);
         }
 
         const mipmaps = [];

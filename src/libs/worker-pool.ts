@@ -55,7 +55,7 @@ export class WorkerPool {
     }
   }
 
-  postMessage(msg: any, transfer: Array<Transferable>): Promise<MessageEvent> {
+  postMessage(msg: any, transfer?: Array<Transferable>): Promise<MessageEvent> {
     return new Promise(resolve => {
       const workerId = this.getIdleWorker();
 
