@@ -85,7 +85,7 @@ export class ZSTDDecoderWorker {
     });
   }
 
-  constructor(wasm: string, pool = 4) {
+  constructor(wasm: string, pool = 5) {
     this.workerPool = new WorkerPool(pool);
     this.wasmBufferPromise = fetch('data:application/wasm;base64,' + wasm).then(
       response => response.arrayBuffer(),

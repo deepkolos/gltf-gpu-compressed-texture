@@ -115,15 +115,15 @@
           first: true,
         },
         {
-          uri: '/no-mipmap/Fendi_banzi_blue.gltf',
+          uri: '/no-mipmap/Fendi_banzi_blue/Fendi_banzi_blue.gltf',
           name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: false worker_decode: false(texture num < 4)',
         },
         {
-          uri: '/no-zstd/Fendi_banzi_blue.gltf',
+          uri: '/no-zstd/Fendi_banzi_blue/Fendi_banzi_blue.gltf',
           name: 'Fendi_banzi_blue gltf-tc zstd: false mipmap: true  worker_decode: false(texture num < 4)',
         },
         {
-          uri: '/zstd/Fendi_banzi_blue.gltf',
+          uri: '/zstd/Fendi_banzi_blue/Fendi_banzi_blue.gltf',
           name: 'Fendi_banzi_blue gltf-tc zstd: true  mipmap: true  worker_decode: false(texture num < 4)',
         },
         {
@@ -141,11 +141,11 @@
       ];
       const BoomBoxCases = [
         {
-          uri: '/zstd/BoomBox.gltf',
+          uri: '/zstd/BoomBox/BoomBox.gltf',
           name: 'BoomBox gltf-tc zstd: true  mipmap: true worker_decode: true',
         },
         {
-          uri: '/zstd/BoomBox.gltf',
+          uri: '/zstd/BoomBox/BoomBox.gltf',
           name: 'BoomBox gltf-tc zstd: true  mipmap: true worker_decode: false',
           noWorker: true,
         },
@@ -162,6 +162,42 @@
           name: 'BoomBox gltf',
         },
       ];
+      const DamagedHelmetCases = [
+        {
+          uri: '/zstd/DamagedHelmet/DamagedHelmet.gltf',
+          name: 'DamagedHelmet gltf-tc zstd: true  mipmap: true worker_decode: true',
+        },
+        // {
+        //   uri: '/glb-ktx2/DamagedHelmet.ktx2.glb',
+        //   name: 'DamagedHelmet glb ktx2 uastc',
+        // },
+        {
+          uri: '/glb/DamagedHelmet.glb',
+          name: 'DamagedHelmet glb',
+        },
+        // {
+        //   uri: '/gltf/DamagedHelmet.gltf',
+        //   name: 'DamagedHelmet gltf',
+        // },
+      ];
+      const FlightHelmetCases = [
+        {
+          uri: '/zstd/FlightHelmet/FlightHelmet.gltf',
+          name: 'FlightHelmet gltf-tc zstd: true  mipmap: true worker_decode: true',
+        },
+        {
+          uri: '/glb/FlightHelmet.glb',
+          name: 'FlightHelmet glb',
+        },
+        // {
+        //   uri: '/glb-ktx2/FlightHelmet.ktx2.glb',
+        //   name: 'FlightHelmet glb ktx2 uastc',
+        // },
+        // {
+        //   uri: '/gltf/FlightHelmet.gltf',
+        //   name: 'FlightHelmet gltf',
+        // },
+      ];
       const cases = [
         {
           scale: 2,
@@ -176,6 +212,18 @@
           offsetY: 0.4,
           scaleDir: [-1, 1, -1],
         },
+        {
+          scale: 0.2,
+          items: DamagedHelmetCases,
+          offsetX: 0.5,
+          offsetY: 0.45,
+        },
+        // {
+        //   scale: 0.5,
+        //   items: FlightHelmetCases,
+        //   offsetX: 0.5,
+        //   offsetY: 0.4,
+        // },
       ];
 
       const load = async () => {
@@ -187,21 +235,25 @@
             await trackGroup(
               name,
               async () => {
-                GLTFGPUCompressedTexture.preferUseWorker = !noWorker;
-                const gltf = await track('load', () =>
-                  gltfLoader.loadAsync(baseUrl + uri),
-                );
-                gltf.parser = null;
-                gltf.scene.position.y = 0.9 - j * offsetY;
-                gltf.scene.position.x = -0.3 + i * offsetX;
-                gltf.scene.scale.set(...scaleDir.map(i => i * scale));
-                scene.add(gltf.scene);
+                try {
+                  GLTFGPUCompressedTexture.preferUseWorker = !noWorker;
+                  const gltf = await track('load', () =>
+                    gltfLoader.loadAsync(baseUrl + uri),
+                  );
+                  gltf.parser = null;
+                  gltf.scene.position.y = 0.9 - j * offsetY;
+                  gltf.scene.position.x = -0.8 + i * offsetX;
+                  gltf.scene.scale.set(...scaleDir.map(i => i * scale));
+                  scene.add(gltf.scene);
 
-                first &&
-                  track('renderer.compile', () => {
-                    renderer.compile(scene, camera);
-                  });
-                track('render', render);
+                  first &&
+                    track('renderer.compile', () => {
+                      renderer.compile(scene, camera);
+                    });
+                  track('render', render);
+                } catch (error) {
+                  console.error(`loader ${name} fail`, error);
+                }
                 // track('render2', render);
                 await sleep(120);
               },

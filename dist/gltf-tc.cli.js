@@ -405,6 +405,7 @@ async function encodeBasisCli(
   mipmap,
   normal,
   sRGB,
+  basisuArgs = '-uastc',
   enableLog = false,
 ) {
   const t = Date.now();
@@ -419,9 +420,7 @@ async function encodeBasisCli(
 
   // await exec(`${cmd} -output_file ${tmpFileBasis}`);
   // await exec(`${cmd} -uastc -output_file ${tmpFileBasis}`);
-  await exec(
-    `${cmd} -uastc -uastc_level 2 -uastc_rdo_d 1024 -output_file ${tmpFileBasis}`,
-  );
+  await exec(`${cmd} ${basisuArgs} -output_file ${tmpFileBasis}`);
   const basisBuffer = fs__namespace.readFileSync(tmpFileBasis);
   enableLog && console.log('encode basis cost', Date.now() - t);
   return new Uint8Array(basisBuffer);
@@ -568,14 +567,14 @@ const cli = new CLI();
 
 
 
+
 const main = async (args) => {
   try {
     const t = Date.now();
-    const { dir, outdir = './gltf-tc' } = args;
+    const { dir, outdir = './gltf-tc', basisuArgs } = args;
     const compress = (_nullishCoalesce(args.compress, () => ( 1))) | 0;
     const mipmap = (_nullishCoalesce(args.mipmap, () => ( 'true'))) !== 'false';
-    // prettier-ignore
-    const sizeInfoSummary = { bitmap: 0, astc: 0, etc1: 0, bc7: 0, dxt: 0, pvrtc: 0 };
+    const sizeInfo = {};
 
     makeSureDir(outdir);
 
@@ -589,6 +588,7 @@ const main = async (args) => {
       if (!isDir && (isGLB || isGLTF)) {
         const fileName = path__default['default'].basename(file, ext);
         let result;
+        sizeInfo[fileName] = {};
 
         if (isGLB) {
           result = await gltfPipe__namespace.glbToGltf(fs__default['default'].readFileSync(file), {
@@ -612,7 +612,7 @@ const main = async (args) => {
               const { normal, sRGB, ext } = getTextureInfo(resName, result);
               // prettier-ignore
               const basisFileData = await encodeBasisCli(
-              buffer, ext, mipmap, normal, sRGB
+              buffer, ext, mipmap, normal, sRGB, basisuArgs
             );
               const pkg = await decodeBasisCli(basisFileData, basis, compress);
 
@@ -622,24 +622,38 @@ const main = async (args) => {
               console.log(
                 `done: ${cost}ms\t${resName}\t法线:${normal}\tsRGB: ${sRGB}`,
               );
-              sizeInfoSummary.bitmap += buffer.byteLength;
+              sizeInfo[fileName].bitmap = _nullishCoalesce(sizeInfo[fileName].bitmap, () => ( 0));
+              sizeInfo[fileName].bitmap += buffer.byteLength;
               for (let k in pkg.textures) {
-                sizeInfoSummary[k] += pkg.textures[k].byteLength;
+                sizeInfo[fileName][k] = _nullishCoalesce(sizeInfo[fileName][k], () => ( 0));
+                sizeInfo[fileName][k] += pkg.textures[k].byteLength;
               }
             },
           ),
         );
 
-        writeGLTF(result, outdir, fileName);
+        const subDir = path__default['default'].resolve(outdir, path__default['default'].basename(fileName));
+        makeSureDir(subDir);
+        writeGLTF(result, subDir, fileName);
       }
     });
 
     console.log('');
     console.log(`cost: ${((Date.now() - t) / 1000).toFixed(2)}s`);
-    console.log(`compress: ${compress}, summary:`);
-    for (let k in sizeInfoSummary) {
-      const sizeMB = sizeInfoSummary[k] / 1024 ** 2;
-      console.log(`  ${k.padEnd(6, ' ')}: ${sizeMB.toFixed(2)}MB`);
+
+    let bitmapMB = 0;
+    for (let fileName in sizeInfo) {
+      console.log(`compress: ${compress}, ${fileName} summary:`);
+      for (let k in sizeInfo[fileName]) {
+        const sizeMB = sizeInfo[fileName][k] / 1024 ** 2;
+        if (k === 'bitmap') bitmapMB = sizeMB;
+        const diffMB = (sizeMB - bitmapMB).toFixed(2);
+
+        console.log(
+          `  ${k.padEnd(6, ' ')}: ${sizeMB.toFixed(2)}MB (${diffMB}MB)`,
+        );
+      }
+      console.log('');
     }
 
     removeTmpFiles();
@@ -652,7 +666,7 @@ const main = async (args) => {
 cli
   .action('-h --help', '显示帮助', '', () => cli.help())
   .action(
-    '-i --input [dir] [?outdir] [?compress] [?mipmap]',
+    '-i --input [dir] [?outdir] [?compress] [?mipmap] [?basisuArgs]',
     '把gltf所使用纹理转换为GPU压缩纹理并支持fallback',
     '',
     main,
@@ -662,5 +676,6 @@ cli
   .action("gltf-tc -i ./examples/glb' ./examples/no-zstd 0", '', 'Examples')
   .action("gltf-tc -i ./examples/glb' ./examples/no-mipmap 1 false", '', 'Examples')
   .action("gltf-tc -i ./examples/glb' ./examples/no-zstd-no-mipmap 0 false", '', 'Examples')
+  .action("gltf-tc -i ./examples/glb' ./examples/zstd 1 true \"-uastc\"", '', 'Examples')
 
   .run(process__default['default'].argv.slice(2));

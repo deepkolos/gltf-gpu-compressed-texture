@@ -83,6 +83,7 @@ export async function encodeBasisCli(
   mipmap: boolean,
   normal: boolean,
   sRGB: boolean,
+  basisuArgs = '-uastc',
   enableLog = false,
 ): Promise<Uint8Array> {
   const t = Date.now();
@@ -97,9 +98,7 @@ export async function encodeBasisCli(
 
   // await exec(`${cmd} -output_file ${tmpFileBasis}`);
   // await exec(`${cmd} -uastc -output_file ${tmpFileBasis}`);
-  await exec(
-    `${cmd} -uastc -uastc_level 2 -uastc_rdo_d 1024 -output_file ${tmpFileBasis}`,
-  );
+  await exec(`${cmd} ${basisuArgs} -output_file ${tmpFileBasis}`);
   const basisBuffer = fs.readFileSync(tmpFileBasis);
   enableLog && console.log('encode basis cost', Date.now() - t);
   return new Uint8Array(basisBuffer);

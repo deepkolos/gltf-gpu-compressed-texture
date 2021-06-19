@@ -307,7 +307,7 @@ class ZSTDDecoderWorker {
     });
   }
 
-  constructor(wasm, pool = 4) {
+  constructor(wasm, pool = 5) {
     this.workerPool = new WorkerPool(pool);
     this.wasmBufferPromise = fetch('data:application/wasm;base64,' + wasm).then(
       response => response.arrayBuffer(),
@@ -397,6 +397,7 @@ class GLTFGPUCompressedTexture {
     renderer,
     deps
 
+
 ,
   ) {
     this.name = 'EXT_gpu_compressed_texture';
@@ -404,19 +405,19 @@ class GLTFGPUCompressedTexture {
     this.deps = deps;
     this.detectSupport(renderer);
     this.zstd = new ZSTDDecoder();
-    this.zstdWorker = new ZSTDDecoderWorker(wasm);
+    this.zstdWorker = new ZSTDDecoderWorker(wasm, deps.pool);
   }
 
   detectSupport(renderer) {
     this.supportInfo = {
-      astc: renderer.extensions.has('WEBGL_compressed_texture_astc'),
-      bc7: renderer.extensions.has('EXT_texture_compression_bptc'),
-      dxt: renderer.extensions.has('WEBGL_compressed_texture_s3tc'),
-      etc1: renderer.extensions.has('WEBGL_compressed_texture_etc1'),
-      etc2: renderer.extensions.has('WEBGL_compressed_texture_etc'),
       pvrtc:
         renderer.extensions.has('WEBGL_compressed_texture_pvrtc') ||
         renderer.extensions.has('WEBKIT_WEBGL_compressed_texture_pvrtc'),
+      dxt: renderer.extensions.has('WEBGL_compressed_texture_s3tc'),
+      astc: renderer.extensions.has('WEBGL_compressed_texture_astc'),
+      bc7: renderer.extensions.has('EXT_texture_compression_bptc'),
+      etc1: renderer.extensions.has('WEBGL_compressed_texture_etc1'),
+      etc2: renderer.extensions.has('WEBGL_compressed_texture_etc'),
     };
   }
 

@@ -22,16 +22,16 @@ interface Args {
   outdir: string;
   compress: number;
   mipmap: string;
+  basisuArgs: string;
 }
 
 const main = async (args: Args) => {
   try {
     const t = Date.now();
-    const { dir, outdir = './gltf-tc' } = args;
+    const { dir, outdir = './gltf-tc', basisuArgs } = args;
     const compress = (args.compress ?? 1) | 0;
     const mipmap = (args.mipmap ?? 'true') !== 'false';
-    // prettier-ignore
-    const sizeInfoSummary = { bitmap: 0, astc: 0, etc1: 0, bc7: 0, dxt: 0, pvrtc: 0 };
+    const sizeInfo: { [file: string]: { [t: string]: number } } = {};
 
     makeSureDir(outdir);
 
@@ -45,6 +45,7 @@ const main = async (args: Args) => {
       if (!isDir && (isGLB || isGLTF)) {
         const fileName = path.basename(file, ext);
         let result: GLTFPipeResult;
+        sizeInfo[fileName] = {};
 
         if (isGLB) {
           result = await gltfPipe.glbToGltf(fs.readFileSync(file), {
@@ -68,7 +69,7 @@ const main = async (args: Args) => {
               const { normal, sRGB, ext } = getTextureInfo(resName, result);
               // prettier-ignore
               const basisFileData = await encodeBasisCli(
-              buffer, ext, mipmap, normal, sRGB
+              buffer, ext, mipmap, normal, sRGB, basisuArgs
             );
               const pkg = await decodeBasisCli(basisFileData, basis, compress);
 
@@ -78,24 +79,38 @@ const main = async (args: Args) => {
               console.log(
                 `done: ${cost}ms\t${resName}\t法线:${normal}\tsRGB: ${sRGB}`,
               );
-              sizeInfoSummary.bitmap += buffer.byteLength;
+              sizeInfo[fileName].bitmap = sizeInfo[fileName].bitmap ?? 0;
+              sizeInfo[fileName].bitmap += buffer.byteLength;
               for (let k in pkg.textures) {
-                sizeInfoSummary[k] += pkg.textures[k].byteLength;
+                sizeInfo[fileName][k] = sizeInfo[fileName][k] ?? 0;
+                sizeInfo[fileName][k] += pkg.textures[k].byteLength;
               }
             },
           ),
         );
 
-        writeGLTF(result, outdir, fileName);
+        const subDir = path.resolve(outdir, path.basename(fileName));
+        makeSureDir(subDir);
+        writeGLTF(result, subDir, fileName);
       }
     });
 
     console.log('');
     console.log(`cost: ${((Date.now() - t) / 1000).toFixed(2)}s`);
-    console.log(`compress: ${compress}, summary:`);
-    for (let k in sizeInfoSummary) {
-      const sizeMB = sizeInfoSummary[k] / 1024 ** 2;
-      console.log(`  ${k.padEnd(6, ' ')}: ${sizeMB.toFixed(2)}MB`);
+
+    let bitmapMB = 0;
+    for (let fileName in sizeInfo) {
+      console.log(`compress: ${compress}, ${fileName} summary:`);
+      for (let k in sizeInfo[fileName]) {
+        const sizeMB = sizeInfo[fileName][k] / 1024 ** 2;
+        if (k === 'bitmap') bitmapMB = sizeMB;
+        const diffMB = (sizeMB - bitmapMB).toFixed(2);
+
+        console.log(
+          `  ${k.padEnd(6, ' ')}: ${sizeMB.toFixed(2)}MB (${diffMB}MB)`,
+        );
+      }
+      console.log('');
     }
 
     removeTmpFiles();
@@ -108,7 +123,7 @@ const main = async (args: Args) => {
 cli
   .action('-h --help', '显示帮助', '', () => cli.help())
   .action<Args>(
-    '-i --input [dir] [?outdir] [?compress] [?mipmap]',
+    '-i --input [dir] [?outdir] [?compress] [?mipmap] [?basisuArgs]',
     '把gltf所使用纹理转换为GPU压缩纹理并支持fallback',
     '',
     main,
@@ -118,5 +133,6 @@ cli
   .action("gltf-tc -i ./examples/glb' ./examples/no-zstd 0", '', 'Examples')
   .action("gltf-tc -i ./examples/glb' ./examples/no-mipmap 1 false", '', 'Examples')
   .action("gltf-tc -i ./examples/glb' ./examples/no-zstd-no-mipmap 0 false", '', 'Examples')
+  .action("gltf-tc -i ./examples/glb' ./examples/zstd 1 true \"-uastc\"", '', 'Examples')
 
   .run(process.argv.slice(2));
