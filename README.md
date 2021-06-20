@@ -53,6 +53,8 @@ compress: 1, Fendi_banzi_blue summary:
 Done in 19.43s.
 ```
 
+> 只要设置 -comp_level 6，这个脚本就是烤机工具
+
 ## NPM 包使用
 
 ```js
@@ -127,7 +129,7 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 0. 优先使用 pvrtc，因为其体积上面与 jpg 相差不大，与 PNG 有较大优势（done
 1. 无透明通道优先使用 etc1
 2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理
-3. 少图片和小图片 UI 线程 decode，否则在 Worker 线程 decode（done少图片
+3. 少图片和小图片 UI 线程 decode，否则在 Worker 线程 decode（done 少图片
 
 ## TODO
 
@@ -137,9 +139,14 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 3. 支持输出 GLB 格式
 4. basisu zstd 参数可自定义（basisu done
 5. 少图片使用 UI 线程 decode, 多图片使用 worker decode （done, 但是对于少贴图模型需要更详细规则
-6. 支持ETC2格式
+6. 支持 ETC2 格式
 
 ### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
+
+## 参考
+
+0. [ASTC 纹理压缩格式详解](https://zhuanlan.zhihu.com/p/158740249)
+1. [你所需要了解的几种纹理压缩格式原理](https://zhuanlan.zhihu.com/p/237940807)
 
 # 赞助
 

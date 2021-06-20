@@ -17,6 +17,7 @@
     "cli-zstd": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/zstd",
     "cli-no-zstd": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/no-zstd 0",
     "cli-no-mipmap": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/no-mipmap 1 false",
+    "cli-etc1s": "node dist/gltf-tc.cli.js -i ./examples/glb ./examples/etc1s 1 false \"-comp_level 5 -max_endpoints 16128 -max_selectors 16128\"",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0",
     "prepublish": "npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
