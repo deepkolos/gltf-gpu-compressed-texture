@@ -1,9 +1,26 @@
-# 1.0.0 (2021-06-14)
+## [1.0.2](https://github.com/deepkolos/gltf-gpu-compressed-texture/compare/v1.0.1...v1.0.2) (2021-06-23)
 
 
 ### Bug Fixes
 
-* cli examples ([8035e02](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/8035e02d49b4d8b56e64c037ac5622d159338bec))
+* blender will export same source and sampler texture by update textures ([0c849b2](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/0c849b299bef6bc9240bd8bc29becfff4542ec9a))
+* cli examples & doc ([9cdb943](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/9cdb9438f26450bd11c151a26eb26c0b3668dbad))
+* types ([be573f3](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/be573f31088e80568cf97a40cf218a0d8d33ce40))
+
+
+### Features
+
+* add postMessage copy transferable test ([1773e89](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/1773e89aa31f4f6d882cbae95d1915cb1a040103))
+* cli output size info per file & demo add DamagedHelmet ([4e4fb51](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/4e4fb5163863d0d5c5993480fc5d038b95ffd827))
+
+
+
+## [1.0.1](https://github.com/deepkolos/gltf-gpu-compressed-texture/compare/6d134393b2d2f742dc98ec68978267a3a8bc2c9b...v1.0.1) (2021-06-14)
+
+
+### Bug Fixes
+
+* cli examples ([1e4ccd9](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/1e4ccd94ccacab31595d256df028326baa0a6fb3))
 
 
 ### Features
