@@ -63,7 +63,7 @@ import {
   CompressedTexture,
   WebGLRenderer,
 } from 'three-platfromzie/examples/jsm/loaders/GLTFLoader';
-import GLTFGPUCompressedTexture from 'gltf-gpu-compressed-texture';
+import { GLTFGPUCompressedTexture } from 'gltf-gpu-compressed-texture';
 
 const gltfLoader = new GLTFLoader();
 const renderer = new WebGLRenderer();
