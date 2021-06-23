@@ -10,11 +10,11 @@ export function updateGLTFTextures(
   extensionName: string,
   extensionDef: any,
 ) {
-  gltf.textures.some(tex => {
+  // blender导出可能有冗余的texture定义
+  gltf.textures.forEach(tex => {
     if (gltf.images[tex.source].uri === resName) {
       tex.extensions = tex.extensions || {};
       tex.extensions[extensionName] = extensionDef;
-      return true;
     }
   });
 }
