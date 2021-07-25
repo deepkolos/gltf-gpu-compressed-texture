@@ -70,8 +70,11 @@ const renderer = new WebGLRenderer();
 const scene = new Scene();
 
 gltfLoader.register(parser => {
-  return new GLTFGPUCompressedTexture(parser, renderer, {
+  return new GLTFGPUCompressedTexture({
+    parser,
+    renderer,
     CompressedTexture: THREE.CompressedTexture,
+    loadStrategy: GLTFGPUCompressedTexture.DEFAULT_STRATEGY,
   });
 });
 
