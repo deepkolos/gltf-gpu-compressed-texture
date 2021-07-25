@@ -61,6 +61,8 @@
     "http-server": "^0.12.3",
     "rollup": "^2.35.1",
     "rollup-plugin-copy": "^3.4.0",
-    "three": "^0.129.0"
+    "rollup-plugin-dts": "^3.0.2",
+    "three": "^0.129.0",
+    "typescript": "^4.3.5"
   }
 }
