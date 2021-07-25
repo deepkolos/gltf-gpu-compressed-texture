@@ -1,5 +1,12 @@
 import { WorkerPool } from './worker-pool';
 
+function createWorkerSourceUrl(fn: Function) {
+  const fnStr = fn.toString();
+  return URL.createObjectURL(
+    new Blob([fnStr.substring(fnStr.indexOf('{') + 1, fnStr.lastIndexOf('}'))]),
+  );
+}
+
 export class ZSTDDecoderWorker {
   workerPool: WorkerPool;
   wasmBufferPromise: Promise<ArrayBuffer>;
@@ -90,9 +97,7 @@ export class ZSTDDecoderWorker {
     this.wasmBufferPromise = fetch('data:application/wasm;base64,' + wasm).then(
       response => response.arrayBuffer(),
     );
-    this.workerSourceUrl = this.workerPool.createWorkerSourceUrl(
-      ZSTDDecoderWorker.Worker,
-    );
+    this.workerSourceUrl = createWorkerSourceUrl(ZSTDDecoderWorker.Worker);
     this.initPromise = null;
   }
 
@@ -100,7 +105,7 @@ export class ZSTDDecoderWorker {
     if (!this.initPromise)
       this.initPromise = Promise.resolve(this.wasmBufferPromise).then(
         wasmBuffer => {
-          this.workerPool.initWorkers(() => {
+          this.workerPool.setWorkerCreator(() => {
             const worker = new Worker(this.workerSourceUrl);
             const wasmBufferCopy = wasmBuffer.slice(0);
             worker.postMessage({ type: 'init', wasmBuffer: wasmBufferCopy }, [

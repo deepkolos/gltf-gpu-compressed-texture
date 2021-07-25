@@ -1,3 +1,7 @@
+/**
+ * @author Deepkolos / https://github.com/deepkolos
+ */
+
 export class WorkerPool {
   pool: number;
   quene: Array<{
@@ -8,41 +12,33 @@ export class WorkerPool {
   workers: Array<Worker>;
   workersResolve: Array<(e: any) => void>;
   workerStatus: number;
-
   constructor(pool = 4) {
     this.pool = pool;
     this.quene = [];
     this.workers = [];
     this.workersResolve = [];
     this.workerStatus = 0;
-    // 一般pool数量不会超过32个
   }
 
-  initWorkers(creator: () => Worker) {
-    for (let i = 0; i < this.pool; i++) {
-      const worker = creator();
-      worker.addEventListener('message', this.onMessage.bind(this, i));
-      this.workers.push(worker);
+  _initWorker(workerId: number) {
+    if (!this.workers[workerId]) {
+      const worker = this.workerCreator();
+      worker.addEventListener('message', this._onMessage.bind(this, workerId));
+      this.workers[workerId] = worker;
     }
   }
-
-  createWorkerSourceUrl(fn: Function) {
-    const fnStr = fn.toString();
-    return URL.createObjectURL(
-      new Blob([
-        fnStr.substring(fnStr.indexOf('{') + 1, fnStr.lastIndexOf('}')),
-      ]),
-    );
+  workerCreator(): Worker {
+    throw new Error('Method not implemented.');
   }
 
-  getIdleWorker() {
-    for (let i = 0; i < this.pool; i++) {
+  _getIdleWorker() {
+    for (let i = 0; i < this.pool; i++)
       if (!(this.workerStatus & (1 << i))) return i;
-    }
+
     return -1;
   }
 
-  onMessage(workerId: number, msg: any) {
+  _onMessage(workerId: number, msg: any) {
     const resolve = this.workersResolve[workerId];
     resolve && resolve(msg);
 
@@ -55,11 +51,20 @@ export class WorkerPool {
     }
   }
 
+  setWorkerCreator(workerCreator: () => Worker) {
+    this.workerCreator = workerCreator;
+  }
+
+  setWorkerLimit(pool: number) {
+    this.pool = pool;
+  }
+
   postMessage(msg: any, transfer?: Array<Transferable>): Promise<MessageEvent> {
     return new Promise(resolve => {
-      const workerId = this.getIdleWorker();
+      const workerId = this._getIdleWorker();
 
       if (workerId !== -1) {
+        this._initWorker(workerId);
         this.workerStatus |= 1 << workerId;
         this.workersResolve[workerId] = resolve;
         this.workers[workerId].postMessage(msg, transfer);
