@@ -1,6 +1,6 @@
 {
   "name": "gltf-gpu-compressed-texture",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "一个用于 GPU 压缩纹理降级的 GLTF 扩展",
   "bin": {
     "gltf-tc": "dist/gltf-tc.cli.js"
