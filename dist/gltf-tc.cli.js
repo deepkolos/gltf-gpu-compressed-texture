@@ -249,6 +249,7 @@ function injectGLTFExtension(
   resName,
   pkg,
   compress,
+  bitmapBuffer,
 ) {
   const extensionDef = {};
   const baseName = path__namespace.basename(resName).replace(path__namespace.extname(resName), '');
@@ -271,6 +272,7 @@ function injectGLTFExtension(
     width: pkg.width,
     height: pkg.height,
     hasAlpha: pkg.hasAlpha,
+    bitmapByteLength: bitmapBuffer.byteLength,
     compress,
   });
 }
@@ -616,7 +618,7 @@ const main = async (args) => {
             );
               const pkg = await decodeBasisCli(basisFileData, basis, compress);
 
-              injectGLTFExtension(result, resName, pkg, compress);
+              injectGLTFExtension(result, resName, pkg, compress, buffer);
 
               const cost = Date.now() - t;
               console.log(

@@ -127,8 +127,8 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 ## 加载策略
 
 0. 优先使用 pvrtc，因为其体积上面与 jpg 相差不大，与 PNG 有较大优势（done
-1. 无透明通道优先使用 etc1
-2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理
+1. 无透明通道优先使用 etc1 （done 大小的策略可覆盖这条
+2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理（done 选择大小小于 bitmap 2 倍的压缩纹理
 3. 少图片和小图片 UI 线程 decode，否则在 Worker 线程 decode（done 少图片
 
 ## TODO
@@ -140,6 +140,9 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 4. basisu zstd 参数可自定义（basisu done
 5. 少图片使用 UI 线程 decode, 多图片使用 worker decode （done, 但是对于少贴图模型需要更详细规则
 6. 支持 ETC2 格式
+7. 生成 bitmap 大小，用于策略判断 （done
+8. 可自定义加载策略 （done
+9. 类 tfjs tf.profile 运行时反馈式优化，即运行时遍历出加载时间最少的策略并记录起来（针对当前场景而言）
 
 ### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
 

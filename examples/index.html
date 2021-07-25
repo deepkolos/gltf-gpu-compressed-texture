@@ -87,14 +87,22 @@
       const controls = new OrbitControls(camera, renderer.domElement);
       const gltfLoader = new GLTFLoader();
       const ktx2Loader = new KTX2Loader();
+      let forceDecodeInUI = false;
 
       ktx2Loader
         .setTranscoderPath('https://threejs.org/examples/js/libs/basis/')
         .detectSupport(renderer);
       gltfLoader.setKTX2Loader(ktx2Loader);
       gltfLoader.register(parser => {
-        return new GLTFGPUCompressedTexture(parser, renderer, {
+        return new GLTFGPUCompressedTexture({
+          parser,
+          renderer,
           CompressedTexture: THREE.CompressedTexture,
+          loadStrategy(...args) {
+            const res = GLTFGPUCompressedTexture.DEFAULT_STRATEGY(...args);
+            if (forceDecodeInUI) res.decodeType = 'zstd-ui';
+            return res;
+          },
         });
       });
 
@@ -236,7 +244,7 @@
               name,
               async () => {
                 try {
-                  GLTFGPUCompressedTexture.preferUseWorker = !noWorker;
+                  forceDecodeInUI = noWorker;
                   const gltf = await track('load', () =>
                     gltfLoader.loadAsync(baseUrl + uri),
                   );

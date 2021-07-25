@@ -24,6 +24,7 @@ export function injectGLTFExtension(
   resName: string,
   pkg: Pkg,
   compress: number,
+  bitmapBuffer: Buffer,
 ) {
   const extensionDef = {};
   const baseName = path.basename(resName).replace(path.extname(resName), '');
@@ -46,6 +47,7 @@ export function injectGLTFExtension(
     width: pkg.width,
     height: pkg.height,
     hasAlpha: pkg.hasAlpha,
+    bitmapByteLength: bitmapBuffer.byteLength,
     compress,
   });
 }

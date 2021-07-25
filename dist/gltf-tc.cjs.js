@@ -372,6 +372,55 @@ const WEBGL_WRAPPINGS = {
   10497: RepeatWrapping,
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const DEFAULT_STRATEGY = (
+  info,
+  extensionDef,
+  gltf,
+  extName,
+  state,
+) => {
+  // 压缩纹理数量大于等于4时在worker decode TODO: 小图片也在UI线程decode
+  if (state.compressedTextureNum === undefined) {
+    state.compressedTextureNum = gltf.textures.filter(
+      tex => !!_optionalChain([tex, 'access', _ => _.extensions, 'optionalAccess', _2 => _2[extName]]),
+    ).length;
+  }
+  // 压缩纹理大小升序，并且大小少于bitmap的2倍
+  const typeSizeAsc = Object.keys(info)
+    .filter(
+      key =>
+        info[key].supported &&
+        info[key].size > 0 &&
+        info[key].size < extensionDef.bitmapByteLength * 2,
+    )
+    .sort((a, b) => info[a].size - info[b].size);
+
+  return {
+    textureType: (typeSizeAsc[0] ) || 'bitmap',
+    decodeType: state.compressedTextureNum >= 4 ? 'zstd-worker' : 'zstd-ui',
+  };
+};
+
 class GLTFGPUCompressedTexture {
   
   
@@ -381,31 +430,32 @@ class GLTFGPUCompressedTexture {
 
 
 
-
-
-
-
+  static __initStatic() {this.DEFAULT_STRATEGY = DEFAULT_STRATEGY;}
+  
+  
   
 
-
-
-  static __initStatic() {this.preferUseWorker = true;}
-  
-
-  constructor(
+  constructor({
     parser,
     renderer,
-    deps
+    pool = 4,
+    loadStrategy = DEFAULT_STRATEGY,
+    CompressedTexture,
+  }
 
 
-,
-  ) {
+
+
+
+) {GLTFGPUCompressedTexture.prototype.__init.call(this);
     this.name = 'EXT_gpu_compressed_texture';
     this.parser = parser;
-    this.deps = deps;
+    this.CompressedTexture = CompressedTexture;
     this.detectSupport(renderer);
     this.zstd = new ZSTDDecoder();
-    this.zstdWorker = new ZSTDDecoderWorker(wasm, deps.pool);
+    this.zstdWorker = new ZSTDDecoderWorker(wasm, pool);
+    this.loadStrategy = loadStrategy;
+    this.loadStrategyState = {};
   }
 
   detectSupport(renderer) {
@@ -417,34 +467,26 @@ class GLTFGPUCompressedTexture {
       astc: renderer.extensions.has('WEBGL_compressed_texture_astc'),
       bc7: renderer.extensions.has('EXT_texture_compression_bptc'),
       etc1: renderer.extensions.has('WEBGL_compressed_texture_etc1'),
-      etc2: renderer.extensions.has('WEBGL_compressed_texture_etc'),
+      // etc2: renderer.extensions.has('WEBGL_compressed_texture_etc'),
     };
   }
 
-  async initDecoder(compress) {
-    if (compress === 1) {
-      const useWorker = this.shouldUseWorker();
-      await (useWorker ? this.zstdWorker.init() : this.zstd.init());
-      return useWorker ? this.zstdWorker : this.zstd;
+  async initDecoder(compress, decodeType) {
+    if (compress === 1 && decodeType !== 'none') {
+      await (decodeType === 'zstd-worker'
+        ? this.zstdWorker.init()
+        : this.zstd.init());
+      return decodeType === 'zstd-worker' ? this.zstdWorker : this.zstd;
     }
   }
 
-  shouldUseWorker() {
-    if (this.compressedTextureNum === undefined) {
-      const { parser, name } = this;
-      const json = parser.json;
-      this.compressedTextureNum = json.textures.filter(
-        tex => !!_optionalChain([tex, 'access', _ => _.extensions, 'optionalAccess', _2 => _2[name]]),
-      ).length;
-    }
-
-    return (
-      GLTFGPUCompressedTexture.preferUseWorker && this.compressedTextureNum >= 4
-    );
-  }
+  __init() {this.getBufferSize = (bufferIndex) => {
+    const bufferDef = this.parser.json.buffers[bufferIndex];
+    return bufferDef ? bufferDef.byteLength : -1;
+  };}
 
   async loadTexture(textureIndex) {
-    const { parser, name } = this;
+    const { parser, name, supportInfo, getBufferSize } = this;
     const json = parser.json;
     const textureDef = json.textures[textureIndex];
 
@@ -453,76 +495,82 @@ class GLTFGPUCompressedTexture {
 
     const extensionDef = textureDef.extensions[name];
     const { hasAlpha, compress } = extensionDef;
+    // prettier-ignore
+    const strategyInfo = {
+      astc: { supported: supportInfo.astc, size: getBufferSize(extensionDef.astc) },
+      etc1: { supported: supportInfo.etc1, size: getBufferSize(extensionDef.etc1) },
+      bc7: { supported: supportInfo.bc7, size: getBufferSize(extensionDef.bc7) },
+      dxt: { supported: supportInfo.dxt, size: getBufferSize(extensionDef.dxt) },
+      pvrtc: { supported: supportInfo.pvrtc, size: getBufferSize(extensionDef.pvrtc) },
+    };
+    // prettier-ignore
+    const { textureType, decodeType } = this.loadStrategy(
+      strategyInfo, extensionDef, json, name, this.loadStrategyState);
 
-    for (let type in this.supportInfo) {
-      if (this.supportInfo[type] && extensionDef[type] !== undefined) {
-        const [buffer, decoder] = await Promise.all([
-          parser.getDependency('buffer', extensionDef[type]),
-          this.initDecoder(compress),
-        ]);
-        const header = new Uint32Array(buffer, 0, 4);
-        const [width, height, levels, dataLen] = header;
-        const offsets = new Uint32Array(buffer, header.byteLength, levels);
-        const dataOffset = header.byteLength + offsets.byteLength;
-        const totalLen = dataOffset + dataLen;
-        let bufferData = new Uint8Array(buffer);
+    if (textureType === 'bitmap') return parser.loadTexture(textureIndex);
 
-        if (decoder) {
-          // const t = performance.now()
-          const input = Uint8Array.from(new Uint8Array(buffer, dataOffset));
-          const output = await decoder.decode(input, dataLen);
-          bufferData = new Uint8Array(totalLen);
-          bufferData.set(output, dataOffset);
-          // console.log('zstd decode cost', performance.now() - t)
-        }
+    const [buffer, decoder] = await Promise.all([
+      parser.getDependency('buffer', extensionDef[textureType]),
+      this.initDecoder(compress, decodeType),
+    ]);
+    const header = new Uint32Array(buffer, 0, 4);
+    const [width, height, levels, dataLen] = header;
+    const offsets = new Uint32Array(buffer, header.byteLength, levels);
+    const dataOffset = header.byteLength + offsets.byteLength;
+    const totalLen = dataOffset + dataLen;
+    let bufferData = new Uint8Array(buffer);
 
-        const mipmaps = [];
-        let offsetPre = dataOffset;
-        for (let i = 0; i < levels; i++) {
-          mipmaps.push({
-            data: new Uint8Array(
-              bufferData.buffer,
-              offsetPre,
-              offsets[i] - offsetPre,
-            ),
-            width: ~~(width / 2 ** i),
-            height: ~~(height / 2 ** i),
-          });
-          offsetPre = offsets[i];
-        }
-        const format =
-          typeof typeFormatMap[type] == 'number'
-            ? typeFormatMap[type]
-            : typeFormatMap[type][hasAlpha];
-        // @ts-ignore
-        const texture = new this.deps.CompressedTexture(
-          mipmaps,
-          width,
-          height,
-          format,
-          UnsignedByteType,
-        );
-        if (textureDef.name) texture.name = textureDef.name;
-
-        const samplers = json.samplers || {};
-        const sampler = samplers[textureDef.sampler] || {};
-        texture.wrapS = WEBGL_WRAPPINGS[sampler.wrapS] || RepeatWrapping;
-        texture.wrapT = WEBGL_WRAPPINGS[sampler.wrapT] || RepeatWrapping;
-        texture.minFilter =
-          mipmaps.length === 1 ? LinearFilter : LinearMipmapLinearFilter;
-        texture.magFilter = LinearFilter;
-        texture.needsUpdate = true;
-
-        parser.associations.set(texture, {
-          type: 'textures',
-          index: textureIndex,
-        });
-        return texture;
-      }
+    if (decoder) {
+      // const t = performance.now()
+      const input = Uint8Array.from(new Uint8Array(buffer, dataOffset));
+      const output = await decoder.decode(input, dataLen);
+      bufferData = new Uint8Array(totalLen);
+      bufferData.set(output, dataOffset);
+      // console.log('zstd decode cost', performance.now() - t, decodeType)
     }
 
-    // 降级为 PNG/JPEG.
-    return parser.loadTexture(textureIndex);
+    const mipmaps = [];
+    let offsetPre = dataOffset;
+    for (let i = 0; i < levels; i++) {
+      mipmaps.push({
+        data: new Uint8Array(
+          bufferData.buffer,
+          offsetPre,
+          offsets[i] - offsetPre,
+        ),
+        width: ~~(width / 2 ** i),
+        height: ~~(height / 2 ** i),
+      });
+      offsetPre = offsets[i];
+    }
+    const format =
+      typeof typeFormatMap[textureType] == 'number'
+        ? typeFormatMap[textureType]
+        : typeFormatMap[textureType][hasAlpha];
+    // @ts-ignore
+    const texture = new this.CompressedTexture(
+      mipmaps,
+      width,
+      height,
+      format,
+      UnsignedByteType,
+    );
+    if (textureDef.name) texture.name = textureDef.name;
+
+    const samplers = json.samplers || {};
+    const sampler = samplers[textureDef.sampler] || {};
+    texture.wrapS = WEBGL_WRAPPINGS[sampler.wrapS] || RepeatWrapping;
+    texture.wrapT = WEBGL_WRAPPINGS[sampler.wrapT] || RepeatWrapping;
+    texture.minFilter =
+      mipmaps.length === 1 ? LinearFilter : LinearMipmapLinearFilter;
+    texture.magFilter = LinearFilter;
+    texture.needsUpdate = true;
+
+    parser.associations.set(texture, {
+      type: 'textures',
+      index: textureIndex,
+    });
+    return texture;
   }
 
   dispose() {

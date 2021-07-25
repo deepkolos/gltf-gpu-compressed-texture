@@ -73,7 +73,7 @@ const main = async (args: Args) => {
             );
               const pkg = await decodeBasisCli(basisFileData, basis, compress);
 
-              injectGLTFExtension(result, resName, pkg, compress);
+              injectGLTFExtension(result, resName, pkg, compress, buffer);
 
               const cost = Date.now() - t;
               console.log(
