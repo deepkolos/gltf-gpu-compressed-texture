@@ -16,11 +16,12 @@ import {
   ClampToEdgeWrapping,
   MirroredRepeatWrapping,
 } from 'three/src/constants.js';
-import { ZSTDDecoder, wasm } from './libs/zstddec';
+import { ZSTDDecoder } from './libs/zstddec';
 import { ZSTDDecoderWorker } from './libs/zstddec.worker';
 import type { CompressedTexture, Texture, WebGLRenderer } from 'three';
 import type { GLTFParser } from 'three/examples/jsm/loaders/GLTFLoader';
 import { GLTF } from './types';
+import { zstdWasm } from './libs/zstd.size';
 
 const typeFormatMap = {
   astc: RGBA_ASTC_4x4_Format,
@@ -123,7 +124,7 @@ export class GLTFGPUCompressedTexture {
     this.CompressedTexture = CompressedTexture;
     this.detectSupport(renderer);
     this.zstd = new ZSTDDecoder();
-    this.zstdWorker = new ZSTDDecoderWorker(wasm, pool);
+    this.zstdWorker = new ZSTDDecoderWorker(zstdWasm, pool);
     this.loadStrategy = loadStrategy;
     this.loadStrategyState = {};
   }

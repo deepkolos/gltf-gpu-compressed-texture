@@ -146,6 +146,7 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 7. 生成 bitmap 大小，用于策略判断 （done
 8. 可自定义加载策略 （done
 9. 类 tfjs tf.profile 运行时反馈式优化，即运行时遍历出加载时间最少的策略并记录起来（针对当前场景而言）
+10. 升级 zstd wasm 构建参考[zstandard-wasm](https://github.com/fabiospampinato/zstandard-wasm) （done DamagedHelmet 95ms -> 81ms 大概15%的提升
 
 ### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
 
