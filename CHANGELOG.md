@@ -1,3 +1,15 @@
+# [1.1.0](https://github.com/deepkolos/gltf-gpu-compressed-texture/compare/v1.0.2...v1.1.0) (2021-07-27)
+
+
+### Features
+
+* add d.ts build ([3704d85](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/3704d85bf9a2304b758ebd8c4ee2101d039ef0e4))
+* add load strategy which can be customize & bitmap byteLen ([1d83599](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/1d83599f6f0a316e6f5f263cf03a071de71e10a0))
+* update WorkerPool which enable locating worker on demand ([17c1318](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/17c1318c0fe3e2d97ff5757fcf263051ae2b3c51))
+* update zstd wasm to 1.5.0 ([befe116](https://github.com/deepkolos/gltf-gpu-compressed-texture/commit/befe116b98e78a157be5898c020e0cedec575ec7))
+
+
+
 ## [1.0.2](https://github.com/deepkolos/gltf-gpu-compressed-texture/compare/v1.0.1...v1.0.2) (2021-06-23)
 
 

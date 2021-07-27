@@ -2,6 +2,29 @@
 
 一个用于 GPU 压缩纹理降级的 GLTF 扩展，以及批量 CLI 转换工具，适用于`THREE`的`GLTFLoader`，[DEMO 地址](https://deepkolos.github.io/gltf-gpu-compressed-texture/examples/index.html)，[扩展定义](https://github.com/deepkolos/glTF/tree/master/extensions/2.0/Vendor/EXT_gpu_compressed_texture)
 
+## 加载策略
+
+0. 优先使用 pvrtc，因为其体积上面与 jpg 相差不大，与 PNG 有较大优势（done
+1. 无透明通道优先使用 etc1 （done 大小的策略可覆盖这条
+2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理（done 选择大小小于 bitmap 2 倍的压缩纹理
+3. 少图片和小图片 UI 线程 decode，否则在 Worker 线程 decode（done 少图片
+
+## TODO
+
+0. 多进程 encode (done
+1. 输出加载各压缩纹理类型体积统计 (done
+2. 按一定优先级规则 GPU 压缩纹理类型 （优先 pvrtc
+3. 支持输出 GLB 格式
+4. basisu zstd 参数可自定义（basisu done
+5. 少图片使用 UI 线程 decode, 多图片使用 worker decode （done, 但是对于少贴图模型需要更详细规则
+6. 支持 ETC2 格式
+7. 生成 bitmap 大小，用于策略判断 （done
+8. 可自定义加载策略 （done
+9. 类 tfjs tf.profile 运行时反馈式优化，即运行时遍历出加载时间最少的策略并记录起来（针对当前场景而言）
+10. 升级 zstd wasm 构建参考[zstandard-wasm](https://github.com/fabiospampinato/zstandard-wasm) （done DamagedHelmet 95ms -> 81ms 大概15%的提升
+
+### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
+
 ## 命令行使用
 
 > 使用之前请确保[zstd](https://github.com/facebook/zstd/releases/)和[basisu](https://github.com/BinomialLLC/basis_universal/releases/)已经在 PATH 里面
@@ -126,29 +149,6 @@ MI 8 下和火狐的测试数据可以查看 [screenshots](https://github.com/de
 微信 webview 下 BoomBox 均比 glb/gltf 快，应该属于异常，chrome 下表现正常，banzi_blue 则稍慢一些，KTX2 的方案依然很慢
 
 > 示例还有 FlightHelmetCases，但是图片资源太大，火狐 lost context, chrome render process 崩溃
-
-## 加载策略
-
-0. 优先使用 pvrtc，因为其体积上面与 jpg 相差不大，与 PNG 有较大优势（done
-1. 无透明通道优先使用 etc1 （done 大小的策略可覆盖这条
-2. 根据 bitmap 与所支持的压缩纹理格式体积比值判断是否使用压缩纹理（done 选择大小小于 bitmap 2 倍的压缩纹理
-3. 少图片和小图片 UI 线程 decode，否则在 Worker 线程 decode（done 少图片
-
-## TODO
-
-0. 多进程 encode (done
-1. 输出加载各压缩纹理类型体积统计 (done
-2. 按一定优先级规则 GPU 压缩纹理类型 （优先 pvrtc
-3. 支持输出 GLB 格式
-4. basisu zstd 参数可自定义（basisu done
-5. 少图片使用 UI 线程 decode, 多图片使用 worker decode （done, 但是对于少贴图模型需要更详细规则
-6. 支持 ETC2 格式
-7. 生成 bitmap 大小，用于策略判断 （done
-8. 可自定义加载策略 （done
-9. 类 tfjs tf.profile 运行时反馈式优化，即运行时遍历出加载时间最少的策略并记录起来（针对当前场景而言）
-10. 升级 zstd wasm 构建参考[zstandard-wasm](https://github.com/fabiospampinato/zstandard-wasm) （done DamagedHelmet 95ms -> 81ms 大概15%的提升
-
-### [CHANGELOG](https://github.com/deepkolos/gltf-gpu-compressed-texture/blob/master/CHANGELOG.md)
 
 ## 参考
 
